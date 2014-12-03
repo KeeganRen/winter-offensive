@@ -116,7 +116,7 @@ void Map::getCloseKeyframes(const FramePtr& frame, list< pair<FramePtr,double> >
 
       assert((*it)->point != NULL);
 
-      if((*it_kf)->isVisible((*it)->point->pos_))
+      if((*it_kf)->isVisible((*it)->point->pos_)) // YS: bug here. should be frame
       {
         close_kfs.push_back(pair<FramePtr,double>(*it_kf,
                             (frame->T_f_w_.translation()-(*it_kf)->T_f_w_.translation()).norm()));
@@ -208,7 +208,7 @@ MapPointCandidates::~MapPointCandidates()
 void MapPointCandidates::newCandidatePoint(Point* point, double depth_sigma2)
 {
   point->type_ = Point::TYPE_CANDIDATE;
-  boost::unique_lock<boost::mutex> lock(mut_);
+  boost::unique_lock<boost::mutex> lock(mut_);  // YS: why? what's the shared resource
   candidates_.push_back(PointCandidate(point, point->obs_.front()));
 }
 

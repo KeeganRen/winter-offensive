@@ -1,0 +1,30 @@
+1. in svo/include/svo/features.h line 37
+Vector3d f;           //!< Unit-bearing vector of the feature.
+what is unit-bearing?
+feature's coordinate up to a unit distance
+
+2. SVO_WARN_STREAM_THROTTLE(2.0, "First image has less than 100 features. Retry in more textured environment.");
+
+addFirstFrame:
+detect features (not the map points, just the good features to track)
+check number of features
+set reference frame
+cp reference feature vector to current feature vector (because the output vector must have the same size as in the input in cv::calcOpticalFlowPyrLK method)
+
+addSecondFram
+trackklt
+computeHomography
+outlier remove
+rescale the map to match the specified scale
+all the inliers are projected on to both frame, bond to both frame, marked as initial map points
+
+disparities_ distance between matched features of the first two frames
+
+  /// Transforms pixel coordinates (c) to frame unit sphere coordinates (f).
+  inline Vector3d c2f(const double x, const double y) const { return cam_->cam2world(x, y); }
+
+
+what does it mean?
+  vector<Feature*>              key_pts_;               //!< Five features and associated 3D points which are used to detect if two frames have overlapping field of view.
+
+

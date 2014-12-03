@@ -70,7 +70,8 @@ protected:
   cv::Mat ref_patch_cache_;
   std::vector<bool> visible_fts_;
 
-  void precomputeReferencePatches();
+  // YS: compute ref_patch_cache_ and jacobian_cache_
+  void precomputeReferencePatches(); 
   virtual double computeResiduals(const SE3& model, bool linearize_system, bool compute_weight_scale = false);
   virtual int solve();
   virtual void update (const ModelType& old_model, ModelType& new_model);

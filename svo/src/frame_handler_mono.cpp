@@ -44,8 +44,10 @@ void FrameHandlerMono::initialize()
   feature_detection::DetectorPtr feature_detector(
       new feature_detection::FastDetector(
           cam_->width(), cam_->height(), Config::gridSize(), Config::nPyrLevels()));
+
   DepthFilter::callback_t depth_filter_cb = boost::bind(
       &MapPointCandidates::newCandidatePoint, &map_.point_candidates_, _1, _2);
+
   depth_filter_ = new DepthFilter(feature_detector, depth_filter_cb);
   depth_filter_->startThread();
 }
@@ -86,6 +88,7 @@ void FrameHandlerMono::addImage(const cv::Mat& img, const double timestamp)
   new_frame_.reset();
 
   // finish processing
+  // YS: do some logging, cal fps
   finishFrameProcessingCommon(last_frame_->id_, res, last_frame_->nObs());
 }
 
@@ -94,7 +97,8 @@ FrameHandlerMono::UpdateResult FrameHandlerMono::processFirstFrame()
   new_frame_->T_f_w_ = SE3(Matrix3d::Identity(), Vector3d::Zero());
   if(klt_homography_init_.addFirstFrame(new_frame_) == initialization::FAILURE)
     return RESULT_NO_KEYFRAME;
-  new_frame_->setKeyframe();
+  new_frame_->setKeyframe();    // YS: set this frame as keyframe and pick up 5 keypoints
+                                // YS: but fts_ key_pts_ of new_frame_ haven't been set !!
   map_.addKeyframe(new_frame_);
   stage_ = STAGE_SECOND_FRAME;
   SVO_INFO_STREAM("Init: Selected first frame.");
@@ -145,7 +149,7 @@ FrameHandlerBase::UpdateResult FrameHandlerMono::processFrame()
   SVO_START_TIMER("reproject");
   reprojector_.reprojectMap(new_frame_, overlap_kfs_);
   SVO_STOP_TIMER("reproject");
-  const size_t repr_n_new_references = reprojector_.n_matches_;
+  const size_t repr_n_new_references = reprojector_.n_matches_; //YS: number of successfully projected map points
   const size_t repr_n_mps = reprojector_.n_trials_;
   SVO_LOG2(repr_n_mps, repr_n_new_references);
   SVO_DEBUG_STREAM("Reprojection:\t nPoints = "<<repr_n_mps<<"\t \t nMatches = "<<repr_n_new_references);
@@ -160,7 +164,7 @@ FrameHandlerBase::UpdateResult FrameHandlerMono::processFrame()
   // pose optimization
   SVO_START_TIMER("pose_optimizer");
   size_t sfba_n_edges_final;
-  double sfba_thresh, sfba_error_init, sfba_error_final;
+  double sfba_thresh, sfba_error_init, sfba_error_final;  //YS: what? value noncopyable? no, it's a reference
   pose_optimizer::optimizeGaussNewton(
       Config::poseOptimThresh(), Config::poseOptimNumIter(), false,
       new_frame_, sfba_thresh, sfba_error_init, sfba_error_final, sfba_n_edges_final);

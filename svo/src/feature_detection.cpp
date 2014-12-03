@@ -39,6 +39,9 @@ void AbstractDetector::resetGrid()
   std::fill(grid_occupancy_.begin(), grid_occupancy_.end(), false);
 }
 
+// YS: http://stackoverflow.com/questions/10250519/invoke-stdfunction-in-an-stdfor-each
+// YS: http://msdn.microsoft.com/zh-cn/library/e5sk9w9k.aspx
+// YS: http://msdn.microsoft.com/zh-cn/library/dd293608.aspx
 void AbstractDetector::setExistingFeatures(const Features& fts)
 {
   std::for_each(fts.begin(), fts.end(), [&](Feature* i){

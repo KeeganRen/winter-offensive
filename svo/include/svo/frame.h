@@ -47,7 +47,7 @@ public:
   double                        timestamp_;             //!< Timestamp of when the image was recorded.
   vk::AbstractCamera*           cam_;                   //!< Camera model.
   Sophus::SE3                   T_f_w_;                 //!< Transform (f)rame from (w)orld.
-  Matrix<double, 6, 6>          Cov_;                   //!< Covariance.
+  Matrix<double, 6, 6>          Cov_;                   //!< Covariance. YS: of %xi ?
   ImgPyr                        img_pyr_;               //!< Image Pyramid.
   Features                      fts_;                   //!< List of features in the image.
   vector<Feature*>              key_pts_;               //!< Five features and associated 3D points which are used to detect if two frames have overlapping field of view.

@@ -53,10 +53,10 @@ size_t SparseImgAlign::run(FramePtr ref_frame, FramePtr cur_frame)
   ref_frame_ = ref_frame;
   cur_frame_ = cur_frame;
   ref_patch_cache_ = cv::Mat(ref_frame_->fts_.size(), patch_area_, CV_32F);
-  jacobian_cache_.resize(Eigen::NoChange, ref_patch_cache_.rows*patch_area_);
+  jacobian_cache_.resize(Eigen::NoChange, ref_patch_cache_.rows*patch_area_); // YS: a stacked J, fairly large
   visible_fts_.resize(ref_patch_cache_.rows, false); // TODO: should it be reset at each level?
 
-  SE3 T_cur_from_ref(cur_frame_->T_f_w_ * ref_frame_->T_f_w_.inverse());
+  SE3 T_cur_from_ref(cur_frame_->T_f_w_ * ref_frame_->T_f_w_.inverse());    // YS: identity matrix
 
   for(level_=max_level_; level_>=min_level_; --level_)
   {
@@ -84,7 +84,7 @@ Matrix<double, 6, 6> SparseImgAlign::getFisherInformation()
 void SparseImgAlign::precomputeReferencePatches()
 {
   const int border = patch_halfsize_+1;
-  const cv::Mat& ref_img = ref_frame_->img_pyr_.at(level_);
+  const cv::Mat& ref_img = ref_frame_->img_pyr_.at(level_); // YS: ref_img is not ref_frame
   const int stride = ref_img.cols;
   const float scale = 1.0f/(1<<level_);
   const Vector3d ref_pos = ref_frame_->pos();
@@ -95,8 +95,8 @@ void SparseImgAlign::precomputeReferencePatches()
       it!=ite; ++it, ++feature_counter, ++visiblity_it)
   {
     // check if reference with patch size is within image
-    const float u_ref = (*it)->px[0]*scale;
-    const float v_ref = (*it)->px[1]*scale;
+    const float u_ref = (*it)->px[0]*scale; // YS: (*it)->px is Coordinates in pixels on pyramid level 0.
+    const float v_ref = (*it)->px[1]*scale; // YS: u_ref v_ref is the coordinates of pixel in the ref_img at pyramid level_
     const int u_ref_i = floorf(u_ref);
     const int v_ref_i = floorf(v_ref);
     if((*it)->point == NULL || u_ref_i-border < 0 || v_ref_i-border < 0 || u_ref_i+border >= ref_img.cols || v_ref_i+border >= ref_img.rows)
@@ -104,7 +104,7 @@ void SparseImgAlign::precomputeReferencePatches()
     *visiblity_it = true;
 
     // cannot just take the 3d points coordinate because of the reprojection errors in the reference image!!!
-    const double depth(((*it)->point->pos_ - ref_pos).norm());
+    const double depth(((*it)->point->pos_ - ref_pos).norm()); // YS: spherical diameter?
     const Vector3d xyz_ref((*it)->f*depth);
 
     // evaluate projection jacobian

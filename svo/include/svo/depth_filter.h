@@ -46,7 +46,7 @@ struct Seed
   float mu;                    //!< Mean of normal distribution.
   float z_range;               //!< Max range of the possible depth.
   float sigma2;                //!< Variance of normal distribution.
-  Matrix2d patch_cov;          //!< Patch covariance in reference image.
+  Matrix2d patch_cov;          //!< Patch covariance in reference image. YS: for what?
   Seed(Feature* ftr, float depth_mean, float depth_min);
 };
 
@@ -72,7 +72,7 @@ public:
     bool verbose;                               //!< display output.
     bool use_photometric_disparity_error;       //!< use photometric disparity error instead of 1px error in tau computation.
     int max_n_kfs;                              //!< maximum number of keyframes for which we maintain seeds.
-    double sigma_i_sq;                          //!< image noise.
+    double sigma_i_sq;                          //!< image noise.   // YS: intensity error
     double seed_convergence_sigma2_thresh;      //!< threshold on depth uncertainty for convergence.
     Options()
     : check_ftr_angle(false),

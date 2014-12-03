@@ -94,10 +94,11 @@ void Point::initNormal()
   normal_set_ = true;
 }
 
+// YS: Close view : smallest stereo angle
 bool Point::getCloseViewObs(const Vector3d& framepos, Feature*& ftr) const
 {
   // TODO: get frame with same point of view AND same pyramid level!
-  Vector3d obs_dir(framepos - pos_); obs_dir.normalize();
+  Vector3d obs_dir(framepos - pos_); obs_dir.normalize();   // YS: observe direction
   auto min_it=obs_.begin();
   double min_cos_angle = 0;
   for(auto it=obs_.begin(), ite=obs_.end(); it!=ite; ++it)

@@ -258,6 +258,7 @@ void DepthFilter::updateSeeds(FramePtr frame)
     }
 
     // if the seed has converged, we initialize a new candidate point and remove the seed
+    // YS: i.e. insert the point to the map
     if(sqrt(it->sigma2) < it->z_range/options_.seed_convergence_sigma2_thresh)
     {
       assert(it->ftr->point == NULL); // TODO this should not happen anymore

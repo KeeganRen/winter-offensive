@@ -37,6 +37,7 @@ public:
 
   /// The depth-filter is running in a parallel thread and fills the canidate list.
   /// This mutex controls concurrent access to point_candidates.
+  // YS: depth-filter access the point_candidates by calling newCandidatePointToFrame
   boost::mutex mut_;
 
   /// Candidate points are created from converged seeds.
@@ -51,6 +52,7 @@ public:
   void newCandidatePoint(Point* point, double depth_sigma2);
 
   /// Adds the feature to the frame and deletes candidate from list.
+  // YS: why? what for?
   void addCandidatePointToFrame(FramePtr frame);
 
   /// Remove a candidate point from the list of candidates.

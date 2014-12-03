@@ -74,7 +74,7 @@ InitResult KltHomographyInit::addSecondFrame(FramePtr frame_cur)
   frame_cur->T_f_w_ = T_cur_from_ref_ * frame_ref_->T_f_w_;
   frame_cur->T_f_w_.translation() =
       -frame_cur->T_f_w_.rotation_matrix()*(frame_ref_->pos() + scale*(frame_cur->pos() - frame_ref_->pos()));
-
+                                     // YS:(frame_cur's position in the world frame ------------------------)
   // For each inlier create 3D point and add feature in both frames
   SE3 T_world_cur = frame_cur->T_f_w_.inverse();
   for(vector<int>::iterator it=inliers_.begin(); it!=inliers_.end(); ++it)

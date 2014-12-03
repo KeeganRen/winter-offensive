@@ -42,12 +42,12 @@ void getWarpMatrixAffine(
 {
   // Compute affine warp matrix A_ref_cur
   const int halfpatch_size = 5;
-  const Vector3d xyz_ref(f_ref*depth_ref);
-  Vector3d xyz_du_ref(cam_ref.cam2world(px_ref + Vector2d(halfpatch_size,0)*(1<<level_ref)));
+  const Vector3d xyz_ref(f_ref*depth_ref);  // YS: 3D cordinate of the point in the reference frame's camera frame
+  Vector3d xyz_du_ref(cam_ref.cam2world(px_ref + Vector2d(halfpatch_size,0)*(1<<level_ref))); // YS: x-y to C rather than cam to world
   Vector3d xyz_dv_ref(cam_ref.cam2world(px_ref + Vector2d(0,halfpatch_size)*(1<<level_ref)));
-  xyz_du_ref *= xyz_ref[2]/xyz_du_ref[2];
+  xyz_du_ref *= xyz_ref[2]/xyz_du_ref[2];   // YS: unproject the patch to world frame, du/dv is the half-width/height
   xyz_dv_ref *= xyz_ref[2]/xyz_dv_ref[2];
-  const Vector2d px_cur(cam_cur.world2cam(T_cur_ref*(xyz_ref)));
+  const Vector2d px_cur(cam_cur.world2cam(T_cur_ref*(xyz_ref)));    // YS: project to current frame
   const Vector2d px_du(cam_cur.world2cam(T_cur_ref*(xyz_du_ref)));
   const Vector2d px_dv(cam_cur.world2cam(T_cur_ref*(xyz_dv_ref)));
   A_cur_ref.col(0) = (px_du - px_cur)/halfpatch_size;
