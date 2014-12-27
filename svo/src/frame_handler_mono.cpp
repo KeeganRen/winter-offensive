@@ -201,8 +201,12 @@ FrameHandlerBase::UpdateResult FrameHandlerMono::processFrame()
   // new keyframe selected
   for(Features::iterator it=new_frame_->fts_.begin(); it!=new_frame_->fts_.end(); ++it)
     if((*it)->point != NULL)
+    {
+        // YS: test if happen
+        //SVO_INFO_STREAM("this could happen!");
       (*it)->point->addFrameRef(*it);
-  map_.point_candidates_.addCandidatePointToFrame(new_frame_);
+    }
+  map_.point_candidates_.addCandidatePointToFrame(new_frame_);  // YS: how to manage mappoint and candidate point?
 
   // optional bundle adjustment
 #ifdef USE_BUNDLE_ADJUSTMENT
@@ -311,7 +315,7 @@ bool FrameHandlerMono::needNewKf(double scene_depth_mean)
        fabs(relpos.z())/scene_depth_mean < Config::kfSelectMinDist()*1.3)
       return false;
   }
-  return true;
+  return true;  // YS: if the distance to any overlapped kfs is beyond the config value
 }
 
 void FrameHandlerMono::setCoreKfs(size_t n_closest)

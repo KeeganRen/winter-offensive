@@ -69,7 +69,7 @@ InitResult KltHomographyInit::addSecondFrame(FramePtr frame_cur)
   vector<double> depth_vec;
   for(size_t i=0; i<xyz_in_cur_.size(); ++i)
     depth_vec.push_back((xyz_in_cur_[i]).z());
-  double scene_depth_median = vk::getMedian(depth_vec);
+  double scene_depth_median = vk::getMedian(depth_vec); // YS: what if xyz_in_cur_ has negative element?
   double scale = Config::mapScale()/scene_depth_median;
   frame_cur->T_f_w_ = T_cur_from_ref_ * frame_ref_->T_f_w_;
   frame_cur->T_f_w_.translation() =
@@ -81,7 +81,7 @@ InitResult KltHomographyInit::addSecondFrame(FramePtr frame_cur)
   {
     Vector2d px_cur(px_cur_[*it].x, px_cur_[*it].y);
     Vector2d px_ref(px_ref_[*it].x, px_ref_[*it].y);
-    if(frame_ref_->cam_->isInFrame(px_cur.cast<int>(), 10) && frame_ref_->cam_->isInFrame(px_ref.cast<int>(), 10) && xyz_in_cur_[*it].z() > 0)
+    if(frame_cur->cam_->isInFrame(px_cur.cast<int>(), 10) && frame_ref_->cam_->isInFrame(px_ref.cast<int>(), 10) && xyz_in_cur_[*it].z() > 0)  // YS: bug here!! corrected
     {
       Vector3d pos = T_world_cur * (xyz_in_cur_[*it]*scale);
       Point* new_point = new Point(pos);
@@ -190,7 +190,7 @@ void computeHomography(
   vk::computeInliers(f_cur, f_ref,
                      Homography.T_c2_from_c1.rotation_matrix(), Homography.T_c2_from_c1.translation(),
                      reprojection_threshold, focal_length,
-                     xyz_in_cur, inliers, outliers);
+                     xyz_in_cur, inliers, outliers);    // YS: inliers, the index of inlier pair
   T_cur_from_ref = Homography.T_c2_from_c1;
 }
 

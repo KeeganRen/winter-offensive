@@ -106,6 +106,7 @@ namespace svo {
             ~Matcher() = default;
 
             /// Find a match by directly applying subpix refinement.
+            // YS: apply an affine warping, determine the best level and search in that level
             /// IMPORTANT! This function assumes that px_cur is already set to an estimate that is within ~2-3 pixel of the final result!
             bool findMatchDirect(
                     const Point& pt,

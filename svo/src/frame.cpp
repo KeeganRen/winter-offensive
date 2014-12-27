@@ -62,6 +62,11 @@ void Frame::setKeyframe()
 {
   is_keyframe_ = true;
   setKeyPoints();
+  // YS: debug
+//  if (key_pts_[0] == NULL)
+//      SVO_INFO_STREAM("no key point specified!");
+//  else
+//      SVO_INFO_STREAM("set key point OK!");
 }
 
 void Frame::addFeature(Feature* ftr)

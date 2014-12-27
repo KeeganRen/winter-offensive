@@ -29,7 +29,7 @@ Config::Config() :
     use_imu(vk::getParam<bool>("svo/use_imu", false)),
     core_n_kfs(vk::getParam<int>("svo/core_n_kfs", 3)),
     map_scale(vk::getParam<double>("svo/map_scale", 1.0)),
-    grid_size(vk::getParam<int>("svo/grid_size", 30)),
+    grid_size(vk::getParam<int>("svo/grid_size", 15)),
     init_min_disparity(vk::getParam<double>("svo/init_min_disparity", 50.0)),
     init_min_tracked(vk::getParam<int>("svo/init_min_tracked", 50)),
     init_min_inliers(vk::getParam<int>("svo/init_min_inliers", 40)),
@@ -51,7 +51,7 @@ Config::Config() :
     img_imu_delay(vk::getParam<double>("svo/img_imu_delay", 0.0)),
     max_fts(vk::getParam<int>("svo/max_fts", 120)),
     quality_min_fts(vk::getParam<int>("svo/quality_min_fts", 50)),
-    quality_max_drop_fts(vk::getParam<int>("svo/quality_max_drop_fts", 40))
+    quality_max_drop_fts(vk::getParam<int>("svo/quality_max_drop_fts", 100))
 #else
     trace_name("svo"),
     trace_dir("/tmp"),

@@ -96,10 +96,11 @@ void Reprojector::reprojectMap(
         continue;
 
       // make sure we project a point only once
+      // YS: a point may linked to many frame by feature
       if((*it_ftr)->point->last_projected_kf_id_ == frame->id_)
         continue;
       (*it_ftr)->point->last_projected_kf_id_ = frame->id_;
-      if(reprojectPoint(frame, (*it_ftr)->point))
+      if(reprojectPoint(frame, (*it_ftr)->point)) // YS: reprojection may fail
         overlap_kfs.back().second++;
     }
   }
@@ -114,11 +115,11 @@ void Reprojector::reprojectMap(
     {
       if(!reprojectPoint(frame, it->first))
       {
-        it->first->n_failed_reproj_ += 3;
+        it->first->n_failed_reproj_ += 3;   // YS: why 3?
         if(it->first->n_failed_reproj_ > 30)
         {
-          map_.point_candidates_.deleteCandidate(*it);
-          it = map_.point_candidates_.candidates_.erase(it);
+          map_.point_candidates_.deleteCandidate(*it); // YS: move it to trash
+          it = map_.point_candidates_.candidates_.erase(it);    // YS: erase from the list
           continue;
         }
       }
@@ -157,7 +158,7 @@ bool Reprojector::reprojectCell(Cell& cell, FramePtr frame)
   {
     ++n_trials_;
 
-    if(it->pt->type_ == Point::TYPE_DELETED)
+    if(it->pt->type_ == Point::TYPE_DELETED) // YS: how could this happen?
     {
       it = cell.erase(it);
       continue;
@@ -178,7 +179,11 @@ bool Reprojector::reprojectCell(Cell& cell, FramePtr frame)
     }
     it->pt->n_succeeded_reproj_++;
     if(it->pt->type_ == Point::TYPE_UNKNOWN && it->pt->n_succeeded_reproj_ > 10)
+    {
       it->pt->type_ = Point::TYPE_GOOD;
+      // YS: test how many obs_ does the point have
+      //SVO_INFO_STREAM("obs_ size : "<<it->pt->obs_.size());
+    }
 
     Feature* new_feature = new Feature(frame.get(), it->px, matcher_.search_level_);
     frame->addFeature(new_feature);
@@ -196,6 +201,7 @@ bool Reprojector::reprojectCell(Cell& cell, FramePtr frame)
 
     // If the keyframe is selected and we reproject the rest, we don't have to
     // check this point anymore.
+    // YS: ???
     it = cell.erase(it);
 
     // Maximum one point per cell.
@@ -211,7 +217,7 @@ bool Reprojector::reprojectPoint(FramePtr frame, Point* point)
   {
     const int k = static_cast<int>(px[1]/grid_.cell_size)*grid_.grid_n_cols
                 + static_cast<int>(px[0]/grid_.cell_size);
-    grid_.cells.at(k)->push_back(Candidate(point, px));
+    grid_.cells.at(k)->push_back(Candidate(point, px)); // YS: push a stack variable's reference?
     return true;
   }
   return false;

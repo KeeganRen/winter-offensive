@@ -28,3 +28,123 @@ what does it mean?
   vector<Feature*>              key_pts_;               //!< Five features and associated 3D points which are used to detect if two frames have overlapping field of view.
 
 
+  list< FramePtr > keyframes_;          //!< List of keyframes in the map.
+  list< pair<FramePtr,double> > close_kfs;
+  map_.getCloseKeyframes(frame, close_kfs);
+  for(auto it_kf=keyframes_.begin(), ite_kf=keyframes_.end(); it_kf!=ite_kf; ++it_kf)
+        close_kfs.push_back(pair<FramePtr,double>(*it_kf,
+                            (frame->T_f_w_.translation()-(*it_kf)->T_f_w_.translation()).norm()));
+
+void Reprojector::reprojectMap(
+    FramePtr frame,
+    std::vector< std::pair<FramePtr,std::size_t> >& overlap_kfs)
+  for(auto it_frame=close_kfs.begin(), ite_frame=close_kfs.end();
+    FramePtr ref_frame = it_frame->first;
+    overlap_kfs.push_back(pair<FramePtr,size_t>(ref_frame,0));
+
+
+Map::Map() {}
+Reprojector::Reprojector(vk::AbstractCamera* cam, Map& map) :
+    map_(map)
+{
+  initializeGrid(cam);
+}
+
+FrameHandlerMono::resetAll
+    resetCommon()
+        map_.reset()
+            keyframes_.clear()  //http://stackoverflow.com/questions/594089/does-stdvector-clear-do-delete-free-memory-on-each-element
+                                //FramePtr is boost::share_ptr, it automatically handles the object releasing of the pointer
+                ~Frame()
+                    delete fts_
+            point_candidates_.reset()
+                delete PointCandidate.Point
+                delete PointCandidate.Feature
+                candidates_.clear()
+            emptyTrash()
+    last_frame_.reset() //http://stackoverflow.com/questions/621233/how-to-intentionally-delete-a-boostshared-ptr
+    core_kfs_.clear()
+    overlap_kfs_.clear()
+    depth_filter_->reset()
+        seeds_.clear()
+        frame_queue_.pop()
+
+point/feature life-cycle
+
+KltHomographyInit::addFirstFrame()
+    detectFeatures()
+        detect()
+           fts.push_back() 
+        //fill px_vec f_vec i.e. px_ref_ f_ref_
+        //util now no information has been set for frame
+        //fts_ is still empty
+KltHomographyInit::addSecondFrame()
+    trackKlt()  //fill px_cur_ f_cur_ and disparities_ 
+    computeHomography()
+        Homography()    //get the T_c2_from_c1
+        computeInliers()    //xyz_in_cur inliers outliers
+                            //xyz_in_cur is 3d point coordinate in current frame, up to a scale
+    //calc the map scale
+    //adjust the translation part of current T
+    //the first time create a true point!!!!!!!!!!!!!!!!!!!
+    new Point()
+    new Feature()
+    frame_cur->addFeature()
+    new_point->addFrameRef()
+    new Feature()
+    frame_ref_->addFeature()
+    new_point->addFrameRef()
+    klt_homography_init_.reset()
+        px_cur_.clear()
+        frame_ref_.reset()  //won't release the memory, because frame_ref_ has been referenced by the map_
+
+void Map::emptyTrash()
+{
+  std::for_each(trash_points_.begin(), trash_points_.end(), [&](Point*& pt){
+    delete pt;
+    pt=NULL;
+  });
+  trash_points_.clear();
+  point_candidates_.emptyTrash();
+}
+
+void MapPointCandidates::emptyTrash()
+{
+  std::for_each(trash_points_.begin(), trash_points_.end(), [&](Point*& p){
+    delete p; p=NULL;
+  });
+  trash_points_.clear();
+}
+
+    TYPE_DELETED,
+    TYPE_CANDIDATE,
+    TYPE_UNKNOWN,
+    TYPE_GOOD
+
+reprojectMap()
+    reprojectMapPoint()
+    reprojectPointCandidate()
+        if(n_failed_reproj_ > 30) move point candidate to trash and wait to delete
+
+//a feature may contains a point pointer points to NULL
+void Map::safeDeletePoint(Point* pt)
+{
+  // Delete references to mappoints in all keyframes
+  std::for_each(pt->obs_.begin(), pt->obs_.end(), [&](Feature* ftr){
+    ftr->point=NULL;
+    ftr->frame->removeKeyPoint(ftr);
+  });
+  pt->obs_.clear();
+
+  // Delete mappoint
+  deletePoint(pt);
+}
+
+1.各种new
+2. reprojectCell改变point的属性
+3. 各种reset/clear/delete
+
+void DepthFilter::updateSeeds(FramePtr frame)
+      Point* point = new Point(xyz_world, it->ftr);
+新的关键帧上除了在tracking阶段指出的点-特征对以外，还被depth_filter指出了一些新的fast角点，这些角点没有指定3D point, 当depth收敛过后，实例化point, 分配给这个特征
+收敛过后，通过seed_converged_cb_将这个点加入到candidate

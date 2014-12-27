@@ -44,7 +44,8 @@ void optimizeGaussNewton(
   Vector6d b;
 
   // compute the scale of the error for robust estimation
-  std::vector<float> errors; errors.reserve(frame->fts_.size());
+  std::vector<float> errors; 
+  errors.reserve(frame->fts_.size());
   for(auto it=frame->fts_.begin(); it!=frame->fts_.end(); ++it)
   {
     if((*it)->point == NULL)
@@ -57,7 +58,7 @@ void optimizeGaussNewton(
   if(errors.empty())
     return;
   vk::robust_cost::MADScaleEstimator scale_estimator;
-  estimated_scale = scale_estimator.compute(errors);
+  estimated_scale = scale_estimator.compute(errors);    // YS: initial errors, what's scale used for?
 
   num_obs = errors.size();
   chi2_vec_init.reserve(num_obs);
@@ -67,7 +68,7 @@ void optimizeGaussNewton(
   {
     // overwrite scale
     if(iter == 5)
-      scale = 0.85/frame->cam_->errorMultiplier2();
+      scale = 0.85/frame->cam_->errorMultiplier2(); // YS: why we tuning scale in such way?
 
     b.setZero();
     A.setZero();
@@ -76,20 +77,24 @@ void optimizeGaussNewton(
     // compute residual
     for(auto it=frame->fts_.begin(); it!=frame->fts_.end(); ++it)
     {
-      if((*it)->point == NULL)
+      if((*it)->point == NULL) // YS: approved! never happens. i.e. until now, every feature has a point assigned
+      {
+          SVO_INFO_STREAM("how could this happen?!");
         continue;
+      }
       Matrix26d J;
       Vector3d xyz_f(frame->T_f_w_ * (*it)->point->pos_);
       Frame::jacobian_xyz2uv(xyz_f, J);
       Vector2d e = vk::project2d((*it)->f) - vk::project2d(xyz_f);
-      double sqrt_inv_cov = 1.0 / (1<<(*it)->level);
+      double sqrt_inv_cov = 1.0 / (1<<(*it)->level);    // YS: what we should do along with diff level?
+                                                        // YS: a feature belongs to only one level in a frame!!
       e *= sqrt_inv_cov;
       if(iter == 0)
         chi2_vec_init.push_back(e.squaredNorm()); // just for debug
       J *= sqrt_inv_cov;
       double weight = weight_function.value(e.norm()/scale);
-      A.noalias() += J.transpose()*J*weight;
-      b.noalias() -= J.transpose()*e*weight;
+      A.noalias() += J.transpose()*J*weight;    // YS: A is hessian
+      b.noalias() -= J.transpose()*e*weight;    // YS: b is Jres
       new_chi2 += e.squaredNorm()*weight;
     }
 
@@ -131,7 +136,11 @@ void optimizeGaussNewton(
   for(Features::iterator it=frame->fts_.begin(); it!=frame->fts_.end(); ++it)
   {
     if((*it)->point == NULL)
+    {
+        // YS: test if it happens. approved this never happen
+        //SVO_INFO_STREAM("how could this happen?");
       continue;
+    }
     Vector2d e = vk::project2d((*it)->f) - vk::project2d(frame->T_f_w_ * (*it)->point->pos_);
     double sqrt_inv_cov = 1.0 / (1<<(*it)->level);
     e *= sqrt_inv_cov;

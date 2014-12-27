@@ -116,7 +116,7 @@ void Map::getCloseKeyframes(const FramePtr& frame, list< pair<FramePtr,double> >
 
       assert((*it)->point != NULL);
 
-      if((*it_kf)->isVisible((*it)->point->pos_)) // YS: bug here. should be frame
+      if(frame->isVisible((*it)->point->pos_)) // YS: bug here. should be frame
       {
         close_kfs.push_back(pair<FramePtr,double>(*it_kf,
                             (frame->T_f_w_.translation()-(*it_kf)->T_f_w_.translation()).norm()));
@@ -218,16 +218,21 @@ void MapPointCandidates::addCandidatePointToFrame(FramePtr frame)
   PointCandidateList::iterator it=candidates_.begin();
   while(it != candidates_.end())
   {
+      // YS: test how many keyframe observe the candidate point
+      //SVO_INFO_STREAM("size of obs_ : "<<it->first->obs_.size());
     if(it->first->obs_.front()->frame == frame.get())
     {
       // insert feature in the frame
-      it->first->type_ = Point::TYPE_UNKNOWN;
+      it->first->type_ = Point::TYPE_UNKNOWN;   // YS: candidate to unknown??
       it->first->n_failed_reproj_ = 0;
       it->second->frame->addFeature(it->second);
       it = candidates_.erase(it);
     }
     else
+    {
+        //SVO_INFO_STREAM("what?");
       ++it;
+    }
   }
 }
 
