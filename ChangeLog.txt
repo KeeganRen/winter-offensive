@@ -1,0 +1,8 @@
+2015/01/08 by taogashi
+---------------------------
+1. change in svo_ros/src/visualizer.cpp
+	only display keyframe
+	draw edges
+2. add depth_map_manager.h/.cpp
+	not complete
+	PixelDepthHypothesis

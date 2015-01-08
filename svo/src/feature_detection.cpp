@@ -72,6 +72,7 @@ void FastDetector::detect(
     const double detection_threshold,
     Features& fts)
 {
+    // YS: corners contains grid_n_cols_*grid_n_rows_ elements of default value
   Corners corners(grid_n_cols_*grid_n_rows_, Corner(0,0,detection_threshold,0,0.0f));
   for(int L=0; L<n_pyr_levels_; ++L)
   {
@@ -114,6 +115,80 @@ void FastDetector::detect(
   });
 
   resetGrid();
+}
+
+EdgeDetector::EdgeDetector(
+        const int img_width,
+        const int img_height,
+        const int cell_size,
+        const int n_pyr_levels) :
+            AbstractDetector(img_width, img_height, cell_size, n_pyr_levels)
+{
+    grad_thresh_ = 100000;
+}
+
+void EdgeDetector::detect(
+        Frame* frame,
+        const ImgPyr& img_pyr,
+        const double detection_threshold,
+        Features& fts)
+{
+    Edges edges;
+    for (int L=0; L<n_pyr_levels_; ++L)
+    {
+        const int scale = (1<<L);
+        cv::Mat gradx, grady;
+
+        cv::Sobel(img_pyr[L], gradx, CV_16S, 1, 0, 3);
+        cv::Sobel(img_pyr[L], grady, CV_16S, 0, 1, 3);
+
+        cv::Size size = img_pyr[L].size();
+
+        for (int i=0; i<size.height; i++)
+        {
+            const int16_t* dxdata = (const int16_t*)(gradx.data + i*gradx.step);
+            const int16_t* dydata = (const int16_t*)(grady.data + i*grady.step);
+
+            for (int j=0; j<size.width; j++)
+            {
+                int16_t gx = dxdata[j];
+                int16_t gy = dydata[j];
+
+                int grad_norm_squared = gx*gx + gy*gy;
+                if (grad_norm_squared > grad_thresh_)
+                {
+                    Edge edge(j*scale, i*scale,
+                            grad_norm_squared, L, Vector2d(gx,gy)/grad_norm_squared);
+                    int key = edge.x + edge.y * img_pyr[0].cols;
+                    auto occupancy = edges.find(key);
+                    if(occupancy != edges.end())
+                    {
+                        if (occupancy->second.score < edge.score)
+                        {
+                             occupancy->second.grad_ = edge.grad_;
+                             occupancy->second.score = edge.score;
+                             occupancy->second.level = edge.level;
+                        }
+                    }
+                    else
+                        edges.insert(std::make_pair(key, edge));
+                }
+            }
+        }
+    }
+
+    for (auto it=edges.begin(), ite=edges.end(); it != ite; ++it)
+    {
+        Feature* tmp_fts = new Feature(frame, Vector2d(it->second.x, it->second.y), it->second.level);
+        tmp_fts->grad = it->second.grad_;
+        tmp_fts->type = Feature::EDGELET;
+        fts.push_back(tmp_fts);
+    }
+
+    if (fts.size() > 800)
+        grad_thresh_ *= 1.2;
+    else if(fts.size() < 400)
+        grad_thresh_ *= 0.8;
 }
 
 } // namespace feature_detection

@@ -24,6 +24,7 @@
 #include <svo/sparse_img_align.h>
 #include <vikit/performance_monitor.h>
 #include <svo/depth_filter.h>
+#include <svo/depth_map_manager.h>
 #ifdef USE_BUNDLE_ADJUSTMENT
 #include <svo/bundle_adjustment.h>
 #endif
@@ -44,17 +45,24 @@ void FrameHandlerMono::initialize()
   feature_detection::DetectorPtr feature_detector(
       new feature_detection::FastDetector(
           cam_->width(), cam_->height(), Config::gridSize(), Config::nPyrLevels()));
+  feature_detection::DetectorPtr edge_detector(
+          new feature_detection::EdgeDetector(
+              cam_->width(), cam_->height(), Config::gridSize(), Config::nPyrLevels()));
 
   DepthFilter::callback_t depth_filter_cb = boost::bind(
       &MapPointCandidates::newCandidatePoint, &map_.point_candidates_, _1, _2);
 
   depth_filter_ = new DepthFilter(feature_detector, depth_filter_cb);
+  depth_map_manager_ = new DepthMapManager(edge_detector, map_);
+
   depth_filter_->startThread();
+  depth_map_manager_->startThread();
 }
 
 FrameHandlerMono::~FrameHandlerMono()
 {
   delete depth_filter_;
+  delete depth_map_manager_;
 }
 
 void FrameHandlerMono::addImage(const cv::Mat& img, const double timestamp)
@@ -122,6 +130,7 @@ FrameHandlerBase::UpdateResult FrameHandlerMono::processSecondFrame()
   double depth_mean, depth_min;
   frame_utils::getSceneDepth(*new_frame_, depth_mean, depth_min);
   depth_filter_->addKeyframe(new_frame_, depth_mean, 0.5*depth_min);
+  depth_map_manager_->addKeyframe(new_frame_, depth_mean, 0.5*depth_min);
 
   // add frame to map
   map_.addKeyframe(new_frame_);
@@ -228,6 +237,7 @@ FrameHandlerBase::UpdateResult FrameHandlerMono::processFrame()
 
   // init new depth-filters
   depth_filter_->addKeyframe(new_frame_, depth_mean, 0.5*depth_min);
+  depth_map_manager_->addKeyframe(new_frame_, depth_mean, 0.5*depth_min);
 
   // if limited number of keyframes, remove the one furthest apart
   if(Config::maxNKfs() > 2 && map_.size() >= Config::maxNKfs())
@@ -248,6 +258,13 @@ FrameHandlerMono::UpdateResult FrameHandlerMono::relocalizeFrame(
     FramePtr ref_keyframe)
 {
   SVO_WARN_STREAM_THROTTLE(1.0, "Relocalizing frame");
+
+  if (!ref_keyframe)
+  {
+      SVO_WARN_STREAM("close keyframe not found");
+      return RESULT_FAILURE;
+  }
+
   SparseImgAlign img_align(Config::kltMaxLevel(), Config::kltMinLevel(),
                            30, SparseImgAlign::GaussNewton, false, false);
   size_t img_align_n_tracked = img_align.run(ref_keyframe, new_frame_);

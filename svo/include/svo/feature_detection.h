@@ -19,6 +19,7 @@
 
 #include <svo/global.h>
 #include <svo/frame.h>
+#include <svo/feature.h>
 
 namespace svo {
 
@@ -38,6 +39,20 @@ struct Corner
   {}
 };
 typedef vector<Corner> Corners;
+
+/// Temporary container used for edge detection. Features are initialized from these.
+struct Edge
+{
+  int x;        //!< x-coordinate of corner in the image.
+  int y;        //!< y-coordinate of corner in the image.
+  int level;    //!< pyramid level of the corner.
+  float score;  //!< shi-tomasi score of the corner.
+  Vector2d grad_;  //!< for gradient-features: dominant gradient angle.
+  Edge(int x, int y, float score, int level, Vector2d grad) :
+    x(x), y(y), level(level), score(score), grad_(grad)
+  {}
+};
+typedef unordered_map<int, Edge> Edges;
 
 /// All detectors should derive from this abstract class.
 class AbstractDetector
@@ -99,6 +114,28 @@ public:
       const ImgPyr& img_pyr,
       const double detection_threshold,
       Features& fts);
+};
+
+/// YS: edge detector by yangsheng.
+class EdgeDetector : public AbstractDetector
+{
+public:
+  EdgeDetector(
+      const int img_width,
+      const int img_height,
+      const int cell_size,
+      const int n_pyr_levels);
+
+  virtual ~EdgeDetector() {}
+
+  virtual void detect(
+      Frame* frame,
+      const ImgPyr& img_pyr,
+      const double detection_threshold,
+      Features& fts);
+
+private:
+  int grad_thresh_;
 };
 
 } // namespace feature_detection

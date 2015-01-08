@@ -148,3 +148,15 @@ void DepthFilter::updateSeeds(FramePtr frame)
       Point* point = new Point(xyz_world, it->ftr);
 新的关键帧上除了在tracking阶段指出的点-特征对以外，还被depth_filter指出了一些新的fast角点，这些角点没有指定3D point, 当depth收敛过后，实例化point, 分配给这个特征
 收敛过后，通过seed_converged_cb_将这个点加入到candidate
+
+在稀疏匹配阶段，并不care特征的类型，不论是点特征还是边特征，处理方法都是相同的；而在第二阶段（包括了投影/块匹配/位姿估计三个子步骤），初步推断在SVO算法中，只有块匹配才会考虑点特征和边特征的不同。在depthfilter中，跟edge一点关系都没有……
+为什么SVO没有使用edge类型的特征？
+因为edge特征在做stereo matching的时候会发散，即垂直于梯度方向的位置不确定度会增大。在reprojectmap的过程中，通过2维搜索，总能找到最match的那个点，但对于边特征，只能做一维搜索，那么另一维的不确定度就会增大，而且会不断累积。
+
+seed在创建的时候，需要绑定一个特征，这个特征关联的是提取到这个特征的关键帧。在updateSeeds的过程中，会经历若干次成功匹配，收敛过后，会创建一个新的point实体，这个实体只有一个特征点。这个point会加入到地图的candidates当中。这些candidates在队列中愉快的生活，在reprojectMap时跟正式map point一样投影到当前帧。但是应当注意到，每一次reproject都会根据成功与否对candidate和map point评分，UNKNOWN类型的point分数高的话可以晋级为GOOD类型, 分数低则会被删除；candidate类型的point则没有这么幸运，分数低的会被删除，分数高的却不会晋级。
+candidate在新的关键帧加入的时候会转运，那时如果某个candidate刚好被这个新加入的关键帧观察到，就会晋升为UNKNOWN类型。在以后的reproject中，有机会变成GOOD point。
+一个GOOD point是永久的，直到所有观察到这个point的关键帧都由于距离疏远移除地图，才会被删除。
+
+考虑了edge的地方：
+matcher.cpp
+reprojector.cpp

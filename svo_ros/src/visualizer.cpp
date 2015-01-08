@@ -113,6 +113,13 @@ void Visualizer::publishMinimal(
     cv::Mat img_rgb(frame->img_pyr_[img_pub_level_].size(), CV_8UC3);
     cv::cvtColor(frame->img_pyr_[img_pub_level_], img_rgb, CV_GRAY2RGB);
 
+      if (frame->isKeyframe())
+          for(auto it=frame->depth_map_.begin(), ite=frame->depth_map_.end(); it != ite; ++it)
+              cv::rectangle(img_rgb,
+                      cv::Point2f((it->second->ftr)->px[0]-2, (it->second->ftr)->px[1]-2),
+                      cv::Point2f((it->second->ftr)->px[0]+2, (it->second->ftr)->px[1]+2),
+                      cv::Scalar(255,0,0), CV_FILLED);
+
     if(slam.stage() == FrameHandlerBase::STAGE_SECOND_FRAME)
     {
       // During initialization, draw lines.
@@ -158,7 +165,8 @@ void Visualizer::publishMinimal(
     img_msg.header = header_msg;
     img_msg.image = img_rgb;
     img_msg.encoding = sensor_msgs::image_encodings::BGR8;
-    pub_images_.publish(img_msg.toImageMsg());
+    if (frame->isKeyframe())
+        pub_images_.publish(img_msg.toImageMsg());
   }
 
   if(pub_pose_.getNumSubscribers() > 0 && slam.stage() == FrameHandlerBase::STAGE_DEFAULT_FRAME)

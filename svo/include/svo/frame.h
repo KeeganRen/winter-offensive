@@ -21,7 +21,9 @@
 #include <vikit/math_utils.h>
 #include <vikit/abstract_camera.h>
 #include <boost/noncopyable.hpp>
+#include <boost/thread.hpp>
 #include <svo/global.h>
+#include <unordered_map>
 
 namespace g2o {
 class VertexSE3Expmap;
@@ -32,8 +34,32 @@ namespace svo {
 
 class Point;
 struct Feature;
+struct PixelDepthHypothesis
+{
+    bool isValid;   // good for tracking
+    int continuous_fail;
+    int successful_match;
+    double idepth;  // inverse depth
+    double idepth_var;  // assume Gaussian distribution
+    double idepth_smoothed; // smoothed with neighbour
+    double idepth_var_smoothed;
+    Feature *ftr;
+
+    PixelDepthHypothesis(Feature* _feature, double depth_mean
+            ,double depth_min) :
+        isValid(false),
+        continuous_fail(0),
+        successful_match(0),
+        idepth(1.0/depth_mean),
+        idepth_var(depth_min),
+        idepth_smoothed(1.0/depth_mean),
+        idepth_var_smoothed(depth_min),
+        ftr(_feature)
+    {}
+};
 
 typedef list<Feature*> Features;
+typedef unordered_map<unsigned int, PixelDepthHypothesis*> DepthMap;
 typedef vector<cv::Mat> ImgPyr;
 
 /// A frame saves the image, the associated features and the estimated pose.
@@ -50,6 +76,8 @@ public:
   Matrix<double, 6, 6>          Cov_;                   //!< Covariance. YS: of %xi ?
   ImgPyr                        img_pyr_;               //!< Image Pyramid.
   Features                      fts_;                   //!< List of features in the image.
+  DepthMap                      depth_map_;              // YS: store those have large gradient.
+  boost::mutex                  depth_map_mut_;
   vector<Feature*>              key_pts_;               //!< Five features and associated 3D points which are used to detect if two frames have overlapping field of view.
   bool                          is_keyframe_;           //!< Was this frames selected as keyframe?
   g2oFrameSE3*                  v_kf_;                  //!< Temporary pointer to the g2o node object of the keyframe.
@@ -77,6 +105,9 @@ public:
 
   /// If a point is deleted, we must remove the corresponding key-point.
   void removeKeyPoint(Feature* ftr);
+
+  /// clear the edge_pts_ i.e. depth map
+  void clearDepthMap();
 
   /// Return number of point observations.
   inline size_t nObs() const { return fts_.size(); }

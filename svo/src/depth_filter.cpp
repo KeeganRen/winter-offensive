@@ -114,7 +114,7 @@ void DepthFilter::addKeyframe(FramePtr frame, double depth_mean, double depth_mi
 void DepthFilter::initializeSeeds(FramePtr frame)
 {
   Features new_features;
-  feature_detector_->setExistingFeatures(frame->fts_);
+  feature_detector_->setExistingFeatures(frame->fts_); // YS: reprojectMap
   feature_detector_->detect(frame.get(), frame->img_pyr_,
                             Config::triangMinCornerScore(), new_features);
 
@@ -251,7 +251,7 @@ void DepthFilter::updateSeeds(FramePtr frame)
     updateSeed(1./z, tau_inverse*tau_inverse, &*it);
     ++n_updates;
 
-    if(frame->isKeyframe())
+    if(frame->isKeyframe()) // YS: could be conflict?
     {
       // The feature detector should not initialize new seeds close to this location
       feature_detector_->setGridOccpuancy(matcher_.px_cur_);

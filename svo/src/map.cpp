@@ -116,7 +116,7 @@ void Map::getCloseKeyframes(const FramePtr& frame, list< pair<FramePtr,double> >
 
       assert((*it)->point != NULL);
 
-      if(frame->isVisible((*it)->point->pos_)) // YS: bug here. should be frame
+      if(frame->isVisible((*it)->point->pos_)) // YS: bug here. should be frame. corrected.
       {
         close_kfs.push_back(pair<FramePtr,double>(*it_kf,
                             (frame->T_f_w_.translation()-(*it_kf)->T_f_w_.translation()).norm()));
@@ -130,6 +130,12 @@ FramePtr Map::getClosestKeyframe(const FramePtr& frame) const
 {
   list< pair<FramePtr,double> > close_kfs;
   getCloseKeyframes(frame, close_kfs);
+
+  // YS: in case no close kfs found
+  if (close_kfs.empty())
+  {
+      return FramePtr();
+  }
 
   // Sort KFs with overlap according to their closeness
   close_kfs.sort(boost::bind(&std::pair<FramePtr, double>::second, _1) <
@@ -230,7 +236,7 @@ void MapPointCandidates::addCandidatePointToFrame(FramePtr frame)
     }
     else
     {
-        //SVO_INFO_STREAM("what?");
+        //SVO_INFO_STREAM("oops, it happens"); // YS: test if happens
       ++it;
     }
   }

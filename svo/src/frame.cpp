@@ -43,6 +43,21 @@ Frame::Frame(vk::AbstractCamera* cam, const cv::Mat& img, double timestamp) :
 Frame::~Frame()
 {
   std::for_each(fts_.begin(), fts_.end(), [&](Feature* i){delete i;});
+  for (auto it=depth_map_.begin(), ite=depth_map_.end(); it != ite ; it++)
+  {
+      delete it->second->ftr;
+      delete it->second;
+  }
+}
+
+void Frame::clearDepthMap()
+{
+  for (auto it=depth_map_.begin(), ite=depth_map_.end(); it != ite ; it++)
+  {
+      delete it->second->ftr;
+      delete it->second;
+  }
+  depth_map_.clear();
 }
 
 void Frame::initFrame(const cv::Mat& img)

@@ -37,6 +37,7 @@ namespace svo
 class Point;
 class Matcher;
 class DepthFilter;
+class DepthMapManager;
 
 /// Base class for various VO pipelines. Manages the map and the state machine.
 class FrameHandlerBase : boost::noncopyable

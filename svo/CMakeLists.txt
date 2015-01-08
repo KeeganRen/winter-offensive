@@ -104,6 +104,7 @@ LIST(APPEND SOURCEFILES
   src/feature_alignment.cpp
   src/feature_detection.cpp
   src/depth_filter.cpp
+  src/depth_map_manager.cpp
   src/config.cpp
   src/sparse_img_align.cpp)
 
@@ -128,23 +129,23 @@ TARGET_LINK_LIBRARIES(svo ${LINK_LIBS})
 ################################################################################
 # TESTS
 
-ADD_EXECUTABLE(test_feature_align test/test_feature_alignment.cpp)
-TARGET_LINK_LIBRARIES(test_feature_align svo)
-
-ADD_EXECUTABLE(test_pipeline test/test_pipeline.cpp)
-TARGET_LINK_LIBRARIES(test_pipeline svo)
-
-ADD_EXECUTABLE(test_matcher test/test_matcher.cpp)
-TARGET_LINK_LIBRARIES(test_matcher svo)
-
-ADD_EXECUTABLE(test_feature_detection test/test_feature_detection.cpp)
-TARGET_LINK_LIBRARIES(test_feature_detection svo)
-
-ADD_EXECUTABLE(test_depth_filter test/test_depth_filter.cpp)
-TARGET_LINK_LIBRARIES(test_depth_filter svo)
-
-ADD_EXECUTABLE(test_sparse_img_align test/test_sparse_img_align.cpp)
-TARGET_LINK_LIBRARIES(test_sparse_img_align svo)
-
-ADD_EXECUTABLE(test_pose_optimizer test/test_pose_optimizer.cpp)
-TARGET_LINK_LIBRARIES(test_pose_optimizer svo) 
+#ADD_EXECUTABLE(test_feature_align test/test_feature_alignment.cpp)
+#TARGET_LINK_LIBRARIES(test_feature_align svo)
+#
+#ADD_EXECUTABLE(test_pipeline test/test_pipeline.cpp)
+#TARGET_LINK_LIBRARIES(test_pipeline svo)
+#
+#ADD_EXECUTABLE(test_matcher test/test_matcher.cpp)
+#TARGET_LINK_LIBRARIES(test_matcher svo)
+#
+#ADD_EXECUTABLE(test_feature_detection test/test_feature_detection.cpp)
+#TARGET_LINK_LIBRARIES(test_feature_detection svo)
+#
+#ADD_EXECUTABLE(test_depth_filter test/test_depth_filter.cpp)
+#TARGET_LINK_LIBRARIES(test_depth_filter svo)
+#
+#ADD_EXECUTABLE(test_sparse_img_align test/test_sparse_img_align.cpp)
+#TARGET_LINK_LIBRARIES(test_sparse_img_align svo)
+#
+#ADD_EXECUTABLE(test_pose_optimizer test/test_pose_optimizer.cpp)
+#TARGET_LINK_LIBRARIES(test_pose_optimizer svo) 

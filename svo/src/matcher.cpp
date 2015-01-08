@@ -88,13 +88,13 @@ void warpAffine(
 
   // Perform the warp on a larger patch.
   uint8_t* patch_ptr = patch;
-  const Vector2f px_ref_pyr = px_ref.cast<float>() / (1<<level_ref);
+  const Vector2f px_ref_pyr = px_ref.cast<float>() / (1<<level_ref);    // YS: scaled to raw image
   for (int y=0; y<patch_size; ++y)
   {
     for (int x=0; x<patch_size; ++x, ++patch_ptr)
     {
       Vector2f px_patch(x-halfpatch_size, y-halfpatch_size);
-      px_patch *= (1<<search_level);
+      px_patch *= (1<<search_level);    // YS: scaled to raw image
       const Vector2f px(A_ref_cur*px_patch + px_ref_pyr);
       if (px[0]<0 || px[1]<0 || px[0]>=img_ref.cols-1 || px[1]>=img_ref.rows-1)
         *patch_ptr = 0;
@@ -222,6 +222,20 @@ bool Matcher::findEpipolarMatchDirect(
   warp::warpAffine(A_cur_ref_, ref_frame.img_pyr_[ref_ftr.level], ref_ftr.px,
                    ref_ftr.level, search_level_, halfpatch_size_+1, patch_with_border_);
   createPatchFromPatchWithBorder();
+  
+  // YS: test purpose
+  /*
+  {
+      static int tmp_n=0;
+      if (tmp_n < 500)
+      {
+          stringstream ss;
+          cv::Mat patch_img = cv::Mat(patch_size_, patch_size_, CV_8U, patch_);
+          ss << "/home/yangsheng/Downloads/patch/" << "patch_" << tmp_n++ << ".png";
+          cv::imwrite(ss.str(), patch_img);
+      }
+  }
+  */
 
   if(epi_length_ < 2.0)
   {
