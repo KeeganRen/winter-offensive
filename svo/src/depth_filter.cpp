@@ -225,7 +225,7 @@ void DepthFilter::updateSeeds(FramePtr frame)
       ++it; // behind the camera
       continue;
     }
-    if(!it->ftr->frame->cam_->isInFrame(it->ftr->frame->f2c(xyz_f).cast<int>())) {
+    if(!frame->cam_->isInFrame(frame->f2c(xyz_f).cast<int>())) {  // YS: bug here. corrected
       ++it; // point does not project in image
       continue;
     }
@@ -234,8 +234,9 @@ void DepthFilter::updateSeeds(FramePtr frame)
     float z_inv_min = it->mu + sqrt(it->sigma2);
     float z_inv_max = max(it->mu - sqrt(it->sigma2), 0.00000001f);
     double z;
+    Vector2d px_found;
     if(!matcher_.findEpipolarMatchDirect(
-        *it->ftr->frame, *frame, *it->ftr, 1.0/it->mu, 1.0/z_inv_min, 1.0/z_inv_max, z))
+        *it->ftr->frame, *frame, *it->ftr, 1.0/it->mu, 1.0/z_inv_min, 1.0/z_inv_max, px_found, z))
     {
       it->b++; // increase outlier probability when no match was found
       ++it;
@@ -307,7 +308,7 @@ void DepthFilter::getSeedsCopy(const FramePtr& frame, std::list<Seed>& seeds)
   }
 }
 
-void DepthFilter::updateSeed(const float x, const float tau2, Seed* seed)
+void updateSeed(const float x, const float tau2, Seed* seed)
 {
   float norm_scale = sqrt(seed->sigma2 + tau2);
   if(std::isnan(norm_scale))
@@ -332,7 +333,7 @@ void DepthFilter::updateSeed(const float x, const float tau2, Seed* seed)
   seed->b = seed->a*(1.0f-f)/f;
 }
 
-double DepthFilter::computeTau(
+double computeTau(
       const SE3& T_ref_cur,
       const Vector3d& f,
       const double z,

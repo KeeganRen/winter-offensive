@@ -34,32 +34,10 @@ namespace svo {
 
 class Point;
 struct Feature;
-struct PixelDepthHypothesis
-{
-    bool isValid;   // good for tracking
-    int continuous_fail;
-    int successful_match;
-    double idepth;  // inverse depth
-    double idepth_var;  // assume Gaussian distribution
-    double idepth_smoothed; // smoothed with neighbour
-    double idepth_var_smoothed;
-    Feature *ftr;
-
-    PixelDepthHypothesis(Feature* _feature, double depth_mean
-            ,double depth_min) :
-        isValid(false),
-        continuous_fail(0),
-        successful_match(0),
-        idepth(1.0/depth_mean),
-        idepth_var(depth_min),
-        idepth_smoothed(1.0/depth_mean),
-        idepth_var_smoothed(depth_min),
-        ftr(_feature)
-    {}
-};
+struct Seed;
 
 typedef list<Feature*> Features;
-typedef unordered_map<unsigned int, PixelDepthHypothesis*> DepthMap;
+typedef unordered_map<unsigned int, Seed*> DepthMap;
 typedef vector<cv::Mat> ImgPyr;
 
 /// A frame saves the image, the associated features and the estimated pose.

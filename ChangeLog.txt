@@ -1,3 +1,17 @@
+2015/01/11 by taogashi
+---------------------------
+1. frame.cpp line 123
+if .. else .. would be better
+
+2. vikit_ros/src/output_helper.h(.cpp)
+add publishPointCloud() function
+
+3. change depth_filter option max_n_kfs to 5
+Config::coreNKfs to 5
+
+4. config.cpp
+loba_iter_num 3
+
 2015/01/08 by taogashi
 ---------------------------
 1. change in svo_ros/src/visualizer.cpp

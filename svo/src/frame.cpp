@@ -18,6 +18,7 @@
 #include <svo/frame.h>
 #include <svo/feature.h>
 #include <svo/point.h>
+#include <svo/depth_filter.h>
 #include <svo/config.h>
 #include <boost/bind.hpp>
 #include <vikit/math_utils.h>
@@ -78,10 +79,15 @@ void Frame::setKeyframe()
   is_keyframe_ = true;
   setKeyPoints();
   // YS: debug
-//  if (key_pts_[0] == NULL)
+//  if (key_pts_[0] == NULL || key_pts_[1] == NULL || key_pts_[2] == NULL || key_pts_[3] == NULL || key_pts_[4] == NULL)
+//  {
 //      SVO_INFO_STREAM("no key point specified!");
-//  else
-//      SVO_INFO_STREAM("set key point OK!");
+//      return;
+//  }
+//  std::for_each(key_pts_.begin(), key_pts_.end(), [&](Feature* ftr){
+//          if (ftr->point == NULL)
+//              SVO_INFO_STREAM("empty feature!");
+//              });
 }
 
 void Frame::addFeature(Feature* ftr)
@@ -119,7 +125,7 @@ void Frame::checkKeyPoints(Feature* ftr)
           > (key_pts_[1]->px[0]-cu) * (key_pts_[1]->px[1]-cv))
       key_pts_[1] = ftr;
   }
-  if(ftr->px[0] >= cu && ftr->px[1] < cv)
+  else if(ftr->px[0] >= cu && ftr->px[1] < cv)  
   {
     if(key_pts_[2] == NULL)
       key_pts_[2] = ftr;
@@ -127,7 +133,7 @@ void Frame::checkKeyPoints(Feature* ftr)
           > (key_pts_[2]->px[0]-cu) * (key_pts_[2]->px[1]-cv))
       key_pts_[2] = ftr;
   }
-  if(ftr->px[0] < cv && ftr->px[1] < cv)
+  else if(ftr->px[0] < cv && ftr->px[1] < cv)
   {
     if(key_pts_[3] == NULL)
       key_pts_[3] = ftr;
@@ -135,7 +141,7 @@ void Frame::checkKeyPoints(Feature* ftr)
           > (key_pts_[3]->px[0]-cu) * (key_pts_[3]->px[1]-cv))
       key_pts_[3] = ftr;
   }
-  if(ftr->px[0] < cv && ftr->px[1] >= cv)
+  else if(ftr->px[0] < cv && ftr->px[1] >= cv)
   {
     if(key_pts_[4] == NULL)
       key_pts_[4] = ftr;

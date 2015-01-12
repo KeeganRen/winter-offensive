@@ -4,6 +4,9 @@
     
         <!-- Camera topic to subscribe to -->
         <param name="cam_topic" value="/usb_cam/image_raw" type="str" />
+
+        <param name="publish_markers" value="true" type="bool"/>
+        <param name="loba_num_iter" value="3" type="int"/>
         
         <!-- Camera calibration file -->
         <rosparam file="$(find svo_ros)/param/120_atan_8.yaml" />

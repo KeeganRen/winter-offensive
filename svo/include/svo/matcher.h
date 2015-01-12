@@ -87,7 +87,7 @@ namespace svo {
                     max_epi_search_steps(1000),
                     subpix_refinement(true),
                     epi_search_edgelet_filtering(true),
-                    epi_search_edgelet_max_angle(0.7)
+                    epi_search_edgelet_max_angle(0.9)
                 {}
             } options_;
 
@@ -121,6 +121,7 @@ namespace svo {
                     const double d_estimate,
                     const double d_min,
                     const double d_max,
+                    Vector2d& px_found,
                     double& depth);
 
             void createPatchFromPatchWithBorder();

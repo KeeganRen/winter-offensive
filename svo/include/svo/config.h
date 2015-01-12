@@ -96,6 +96,9 @@ public:
   /// Minimum distance between two keyframes. Relative to the average height in the map.
   static double& kfSelectMinDist() { return getInstance().kfselect_mindist; }
 
+  /// Minimum baseline length to mean frame depth ratio for stereo match.
+  static double& minBaselineToDepthRatio() { return getInstance().min_baseline_to_depth_ratio;}
+
   /// Select only features with a minimum Harris corner score for triangulation.
   static double& triangMinCornerScore() { return getInstance().triang_min_corner_score; }
 
@@ -152,6 +155,8 @@ private:
   size_t max_fts;
   size_t quality_min_fts;
   int quality_max_drop_fts;
+
+  double min_baseline_to_depth_ratio;
 };
 
 } // namespace svo

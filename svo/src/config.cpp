@@ -27,7 +27,7 @@ Config::Config() :
     trace_dir(vk::getParam<string>("svo/trace_dir", "/tmp")),
     n_pyr_levels(vk::getParam<int>("svo/n_pyr_levels", 3)),
     use_imu(vk::getParam<bool>("svo/use_imu", false)),
-    core_n_kfs(vk::getParam<int>("svo/core_n_kfs", 3)),
+    core_n_kfs(vk::getParam<int>("svo/core_n_kfs", 5)),
     map_scale(vk::getParam<double>("svo/map_scale", 1.0)),
     grid_size(vk::getParam<int>("svo/grid_size", 15)),
     init_min_disparity(vk::getParam<double>("svo/init_min_disparity", 50.0)),
@@ -42,7 +42,7 @@ Config::Config() :
     structureoptim_num_iter(vk::getParam<int>("svo/structureoptim_num_iter", 5)),
     loba_thresh(vk::getParam<double>("svo/loba_thresh", 2.0)),
     loba_robust_huber_width(vk::getParam<double>("svo/loba_robust_huber_width", 1.0)),
-    loba_num_iter(vk::getParam<int>("svo/loba_num_iter", 0)),
+    loba_num_iter(vk::getParam<int>("svo/loba_num_iter", 3)),
     kfselect_mindist(vk::getParam<double>("svo/kfselect_mindist", 0.12)),
     triang_min_corner_score(vk::getParam<double>("svo/triang_min_corner_score", 20.0)),
     triang_half_patch_size(vk::getParam<int>("svo/triang_half_patch_size", 4)),
@@ -51,13 +51,14 @@ Config::Config() :
     img_imu_delay(vk::getParam<double>("svo/img_imu_delay", 0.0)),
     max_fts(vk::getParam<int>("svo/max_fts", 120)),
     quality_min_fts(vk::getParam<int>("svo/quality_min_fts", 50)),
-    quality_max_drop_fts(vk::getParam<int>("svo/quality_max_drop_fts", 100))
+    quality_max_drop_fts(vk::getParam<int>("svo/quality_max_drop_fts", 100)),
+    min_baseline_to_depth_ratio(vk::getParam<double>("svo/min_baseline_to_depth_ratio", 0.15))
 #else
     trace_name("svo"),
     trace_dir("/tmp"),
     n_pyr_levels(3),
     use_imu(false),
-    core_n_kfs(3),
+    core_n_kfs(5),
     map_scale(1.0),
     grid_size(25),
     init_min_disparity(50.0),
@@ -72,7 +73,7 @@ Config::Config() :
     structureoptim_num_iter(5),
     loba_thresh(2.0),
     loba_robust_huber_width(1.0),
-    loba_num_iter(0),
+    loba_num_iter(3),
     kfselect_mindist(0.12),
     triang_min_corner_score(20.0),
     triang_half_patch_size(4),
@@ -81,7 +82,8 @@ Config::Config() :
     img_imu_delay(0.0),
     max_fts(120),
     quality_min_fts(50),
-    quality_max_drop_fts(40)
+    quality_max_drop_fts(40),
+    min_baseline_to_depth_ratio(0.15)
 #endif
 {}
 

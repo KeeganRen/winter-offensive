@@ -148,9 +148,14 @@ void optimizeGaussNewton(
     if(e.norm() > reproj_thresh_scaled)
     {
       // we don't need to delete a reference in the point since it was not created yet
+      // YS: will left a feature without a point assigned
       (*it)->point = NULL;
+//      delete *it;
+//      it = frame->fts_.erase(it);
       ++n_deleted_refs;
+//      continue;
     }
+//    ++it;
   }
 
   error_init=0.0;

@@ -24,6 +24,7 @@
 #include <svo/global.h>
 #include <svo/feature_detection.h>
 #include <svo/matcher.h>
+#include <svo/frame.h>
 
 namespace svo {
 
@@ -43,12 +44,25 @@ namespace svo {
         Feature* ftr;                //!< Feature in the keyframe for which the depth should be computed.
         float a;                     //!< a of Beta distribution: When high, probability of inlier is large.
         float b;                     //!< b of Beta distribution: When high, probability of outlier is large.
-        float mu;                    //!< Mean of normal distribution.
+        float mu;                    //!< Mean of normal distribution of the inverse depth.
         float z_range;               //!< Max range of the possible depth.
         float sigma2;                //!< Variance of normal distribution.
         Matrix2d patch_cov;          //!< Patch covariance in reference image. YS: for what?
         Seed(Feature* ftr, float depth_mean, float depth_min);
     };
+
+    /// Bayes update of the seed, x is the measurement, tau2 the measurement uncertainty
+    void updateSeed(
+            const float x,
+            const float tau2,
+            Seed* seed);
+
+    /// Compute the uncertainty of the measurement.
+    double computeTau(
+            const SE3& T_ref_cur,
+            const Vector3d& f,
+            const double z,
+            const double px_error_angle);
 
     /// Depth filter implements the Bayesian Update proposed in:
     /// "Video-based, Real-Time Multi View Stereo" by G. Vogiatzis and C. Hernández.
@@ -79,7 +93,7 @@ namespace svo {
                     epi_search_1d(false),
                     verbose(false),
                     use_photometric_disparity_error(false),
-                    max_n_kfs(3),
+                    max_n_kfs(5),
                     sigma_i_sq(5e-4),
                     seed_convergence_sigma2_thresh(200.0)
                 {}
@@ -121,18 +135,6 @@ namespace svo {
             /// Return a reference to the seeds. This is NOT THREAD SAFE!
             std::list<Seed, aligned_allocator<Seed> >& getSeeds() { return seeds_; }
 
-            /// Bayes update of the seed, x is the measurement, tau2 the measurement uncertainty
-            static void updateSeed(
-                    const float x,
-                    const float tau2,
-                    Seed* seed);
-
-            /// Compute the uncertainty of the measurement.
-            static double computeTau(
-                    const SE3& T_ref_cur,
-                    const Vector3d& f,
-                    const double z,
-                    const double px_error_angle);
 
         protected:
             feature_detection::DetectorPtr feature_detector_;

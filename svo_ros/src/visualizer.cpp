@@ -18,6 +18,7 @@
 #include <svo/frame_handler_mono.h>
 #include <svo/frame.h>
 #include <svo/point.h>
+#include <svo/depth_filter.h>
 #include <svo/map.h>
 #include <svo/feature.h>
 #include <svo_msgs/Info.h>
@@ -88,7 +89,7 @@ void Visualizer::publishMinimal(
       msg_info.num_matches = slam.lastNumObservations();
     else
       msg_info.num_matches = 0;
-    pub_info_.publish(msg_info);
+    pub_info_.publish(msg_info);    // #pub 1
   }
 
   if(frame == NULL)
@@ -112,13 +113,6 @@ void Visualizer::publishMinimal(
     const int scale = (1<<img_pub_level_);
     cv::Mat img_rgb(frame->img_pyr_[img_pub_level_].size(), CV_8UC3);
     cv::cvtColor(frame->img_pyr_[img_pub_level_], img_rgb, CV_GRAY2RGB);
-
-      if (frame->isKeyframe())
-          for(auto it=frame->depth_map_.begin(), ite=frame->depth_map_.end(); it != ite; ++it)
-              cv::rectangle(img_rgb,
-                      cv::Point2f((it->second->ftr)->px[0]-2, (it->second->ftr)->px[1]-2),
-                      cv::Point2f((it->second->ftr)->px[0]+2, (it->second->ftr)->px[1]+2),
-                      cv::Scalar(255,0,0), CV_FILLED);
 
     if(slam.stage() == FrameHandlerBase::STAGE_SECOND_FRAME)
     {
@@ -165,8 +159,7 @@ void Visualizer::publishMinimal(
     img_msg.header = header_msg;
     img_msg.image = img_rgb;
     img_msg.encoding = sensor_msgs::image_encodings::BGR8;
-    if (frame->isKeyframe())
-        pub_images_.publish(img_msg.toImageMsg());
+    pub_images_.publish(img_msg.toImageMsg());  // #pub 2
   }
 
   if(pub_pose_.getNumSubscribers() > 0 && slam.stage() == FrameHandlerBase::STAGE_DEFAULT_FRAME)
@@ -201,7 +194,7 @@ void Visualizer::publishMinimal(
     msg_pose->pose.pose.orientation.w = q.w();
     for(size_t i=0; i<36; ++i)
       msg_pose->pose.covariance[i] = Cov(i%6, i/6);
-    pub_pose_.publish(msg_pose);
+    pub_pose_.publish(msg_pose);    // #pub 3
   }
 }
 
@@ -221,10 +214,10 @@ void Visualizer::visualizeMarkers(
   {
     vk::output_helper::publishHexacopterMarker(
         pub_frames_, "cam_pos", "cams", ros::Time(frame->timestamp_),
-        1, 0, 0.3, Vector3d(0.,0.,1.));
+        1, 0, 0.3, Vector3d(0.,0.,1.)); // #pub 4
     vk::output_helper::publishPointMarker(
         pub_points_, T_world_from_vision_*frame->pos(), "trajectory",
-        ros::Time::now(), trace_id_, 0, 0.006, Vector3d(0.,0.,0.5));
+        ros::Time::now(), trace_id_, 0, 0.006, Vector3d(0.,0.,0.5));    // #pub 5
     if(frame->isKeyframe() || publish_map_every_frame_)
       publishMapRegion(core_kfs);
     removeDeletedPts(map);
@@ -257,6 +250,19 @@ void Visualizer::displayKeyframeWithMps(const FramePtr& frame, int ts)
   vk::output_helper::publishFrameMarker(
       pub_frames_, T_world_cam.rotation_matrix(),
       T_world_cam.translation(), "kfs", ros::Time::now(), frame->id_*10, 0, 0.015);
+
+      if (frame->isKeyframe())
+      {
+          list<Vector3d> cloud;
+          boost::unique_lock<boost::mutex> lock(frame->depth_map_mut_);
+          for(auto it=frame->depth_map_.begin(), ite=frame->depth_map_.end(); it != ite; ++it)
+          {
+              if (it->second->sigma2 < 0.0255555)
+                  cloud.push_back(T_world_from_vision_*frame->T_f_w_.inverse()*(1.0/it->second->mu * it->second->ftr->f)); 
+          }
+          vk::output_helper::publishPointCloud(pub_points_, cloud, "cloud",
+                  ros::Time::now(), frame->id_, 0, 0.008, Vector3d(0.0, 0.3, 0.0), publish_points_display_time_);
+      }
 
   // publish point cloud and links
   for(Features::iterator it=frame->fts_.begin(); it!=frame->fts_.end(); ++it)

@@ -183,6 +183,7 @@ bool Matcher::findEpipolarMatchDirect(
     const double d_estimate,
     const double d_min,
     const double d_max,
+    Vector2d& px_found,
     double& depth)
 {
   SE3 T_cur_ref = cur_frame.T_f_w_ * ref_frame.T_f_w_.inverse();
@@ -253,6 +254,7 @@ bool Matcher::findEpipolarMatchDirect(
     if(res)
     {
       px_cur_ = px_scaled*(1<<search_level_);
+      px_found = px_cur_;
       if(depthFromTriangulation(T_cur_ref, ref_ftr.f, cur_frame.cam_->cam2world(px_cur_), depth))
         return true;
     }
@@ -322,12 +324,14 @@ bool Matcher::findEpipolarMatchDirect(
       if(res)
       {
         px_cur_ = px_scaled*(1<<search_level_);
+        px_found = px_cur_;
         if(depthFromTriangulation(T_cur_ref, ref_ftr.f, cur_frame.cam_->cam2world(px_cur_), depth))
           return true;
       }
       return false;
     }
     px_cur_ = cur_frame.cam_->world2cam(uv_best);
+    px_found = px_cur_;
     if(depthFromTriangulation(T_cur_ref, ref_ftr.f, vk::unproject2d(uv_best).normalized(), depth))
       return true;
   }

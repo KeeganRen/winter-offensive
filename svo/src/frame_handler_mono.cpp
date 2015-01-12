@@ -35,7 +35,8 @@ FrameHandlerMono::FrameHandlerMono(vk::AbstractCamera* cam) :
   FrameHandlerBase(),
   cam_(cam),
   reprojector_(cam_, map_),
-  depth_filter_(NULL)
+  depth_filter_(NULL),
+  depth_map_manager_(NULL)
 {
   initialize();
 }
@@ -56,7 +57,9 @@ void FrameHandlerMono::initialize()
   depth_map_manager_ = new DepthMapManager(edge_detector, map_);
 
   depth_filter_->startThread();
+#ifdef SVO_USE_EDGE
   depth_map_manager_->startThread();
+#endif
 }
 
 FrameHandlerMono::~FrameHandlerMono()
@@ -130,7 +133,9 @@ FrameHandlerBase::UpdateResult FrameHandlerMono::processSecondFrame()
   double depth_mean, depth_min;
   frame_utils::getSceneDepth(*new_frame_, depth_mean, depth_min);
   depth_filter_->addKeyframe(new_frame_, depth_mean, 0.5*depth_min);
+#ifdef SVO_USE_EDGE
   depth_map_manager_->addKeyframe(new_frame_, depth_mean, 0.5*depth_min);
+#endif
 
   // add frame to map
   map_.addKeyframe(new_frame_);
@@ -176,7 +181,7 @@ FrameHandlerBase::UpdateResult FrameHandlerMono::processFrame()
   double sfba_thresh, sfba_error_init, sfba_error_final;  //YS: what? value noncopyable? no, it's a reference
   pose_optimizer::optimizeGaussNewton(
       Config::poseOptimThresh(), Config::poseOptimNumIter(), false,
-      new_frame_, sfba_thresh, sfba_error_init, sfba_error_final, sfba_n_edges_final);
+      new_frame_, sfba_thresh, sfba_error_init, sfba_error_final, sfba_n_edges_final);  // YS: may leave an empty feature(without point)
   SVO_STOP_TIMER("pose_optimizer");
   SVO_LOG4(sfba_thresh, sfba_error_init, sfba_error_final, sfba_n_edges_final);
   SVO_DEBUG_STREAM("PoseOptimizer:\t ErrInit = "<<sfba_error_init<<"px\t thresh = "<<sfba_thresh);
@@ -202,6 +207,9 @@ FrameHandlerBase::UpdateResult FrameHandlerMono::processFrame()
   if(!needNewKf(depth_mean) || tracking_quality_ == TRACKING_BAD)
   {
     depth_filter_->addFrame(new_frame_);
+#ifdef SVO_USE_EDGE
+    depth_map_manager_->addFrame(new_frame_);
+#endif
     return RESULT_NO_KEYFRAME;
   }
   new_frame_->setKeyframe();
@@ -223,6 +231,7 @@ FrameHandlerBase::UpdateResult FrameHandlerMono::processFrame()
   {
     SVO_START_TIMER("local_ba");
     setCoreKfs(Config::coreNKfs());
+    SVO_INFO_STREAM("core keyframes: "<< core_kfs_.size());
     size_t loba_n_erredges_init, loba_n_erredges_fin;
     double loba_err_init, loba_err_fin;
     ba::localBA(new_frame_.get(), &core_kfs_, &map_,
@@ -237,13 +246,18 @@ FrameHandlerBase::UpdateResult FrameHandlerMono::processFrame()
 
   // init new depth-filters
   depth_filter_->addKeyframe(new_frame_, depth_mean, 0.5*depth_min);
+#ifdef SVO_USE_EDGE
   depth_map_manager_->addKeyframe(new_frame_, depth_mean, 0.5*depth_min);
+#endif
 
   // if limited number of keyframes, remove the one furthest apart
   if(Config::maxNKfs() > 2 && map_.size() >= Config::maxNKfs())
   {
     FramePtr furthest_frame = map_.getFurthestKeyframe(new_frame_->pos());
     depth_filter_->removeKeyframe(furthest_frame); // TODO this interrupts the mapper thread, maybe we can solve this better
+#ifdef SVO_USE_EDGE
+    depth_map_manager_->removeKeyframe(furthest_frame);
+#endif
     map_.safeDeleteFrame(furthest_frame);
   }
 
@@ -311,6 +325,9 @@ void FrameHandlerMono::resetAll()
   core_kfs_.clear();
   overlap_kfs_.clear();
   depth_filter_->reset();
+#ifdef SVO_USE_EDGE
+  depth_map_manager_->reset();
+#endif
 }
 
 void FrameHandlerMono::setFirstFrame(const FramePtr& first_frame)
@@ -341,7 +358,7 @@ void FrameHandlerMono::setCoreKfs(size_t n_closest)
   std::partial_sort(overlap_kfs_.begin(), overlap_kfs_.begin()+n, overlap_kfs_.end(),
                     boost::bind(&pair<FramePtr, size_t>::second, _1) >
                     boost::bind(&pair<FramePtr, size_t>::second, _2));
-  std::for_each(overlap_kfs_.begin(), overlap_kfs_.end(), [&](pair<FramePtr,size_t>& i){ core_kfs_.insert(i.first); });
+  std::for_each(overlap_kfs_.begin(), overlap_kfs_.begin()+n, [&](pair<FramePtr,size_t>& i){ core_kfs_.insert(i.first); });
 }
 
 } // namespace svo

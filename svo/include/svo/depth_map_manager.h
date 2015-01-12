@@ -6,6 +6,7 @@
 #include <svo/feature_detection.h>
 #include <svo/global.h>
 #include <svo/matcher.h>
+#include <vikit/performance_monitor.h>
 
 namespace svo {
     class Map;
@@ -20,9 +21,11 @@ namespace svo {
             {
                 int maintain_edges; // number of edge point to maintian
                 double max_depth_var_for_tracking;  //maximal depth variance that can be incoperated in tracking
+                bool verbose;
                 Options():
                     maintain_edges(800),
-                    max_depth_var_for_tracking(100.0)
+                    max_depth_var_for_tracking(150.0),
+                    verbose(false)
                 {}
             } options_;
 
@@ -35,7 +38,12 @@ namespace svo {
             void stopThread();
             void addFrame(FramePtr frame);
             void addKeyframe(FramePtr frame, double depth_mean, double depth_min);
-            FramePtr getActiveKeyframe();
+            void removeKeyframe(FramePtr frame);
+            void reset();
+            FramePtr getActiveKeyframe()
+            {
+                return active_keyframe_;
+            }
 
         protected:
             FramePtr active_keyframe_;  // active keyframe that currently used as reference
@@ -48,11 +56,12 @@ namespace svo {
             Matcher matcher_;
             Map& map_;
 
-
             FramePtr new_keyframe_;
             bool new_keyframe_set_;
             double new_keyframe_mean_depth_;
             double new_keyframe_min_depth_;
+
+            vk::PerformanceMonitor permon_;
 
             // initialize the depth map of the input frame
             // if has active keyframe, propagate the depth map

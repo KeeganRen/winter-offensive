@@ -185,10 +185,10 @@ void EdgeDetector::detect(
         fts.push_back(tmp_fts);
     }
 
-    if (fts.size() > 800)
-        grad_thresh_ *= 1.2;
-    else if(fts.size() < 400)
-        grad_thresh_ *= 0.8;
+    if (fts.size() > 2000)
+        grad_thresh_ *= 1.08;
+    else if(fts.size() < 800)
+        grad_thresh_ *= 0.7;
 }
 
 } // namespace feature_detection
