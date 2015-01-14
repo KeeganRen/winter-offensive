@@ -257,7 +257,7 @@ void Visualizer::displayKeyframeWithMps(const FramePtr& frame, int ts)
           boost::unique_lock<boost::mutex> lock(frame->depth_map_mut_);
           for(auto it=frame->depth_map_.begin(), ite=frame->depth_map_.end(); it != ite; ++it)
           {
-              if (it->second->sigma2 < 0.0255555)
+              if (it->second->sigma2 < 0.01)
                   cloud.push_back(T_world_from_vision_*frame->T_f_w_.inverse()*(1.0/it->second->mu * it->second->ftr->f)); 
           }
           vk::output_helper::publishPointCloud(pub_points_, cloud, "cloud",

@@ -66,6 +66,15 @@ namespace svo {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
+                enum MatchResult
+                {
+                    EdgeDirectionViolate=-3,
+                    SubpixAlignFail=-2,
+                    SearchRangeLimited=-1,
+                    Unexpected=0,
+                    Success=1
+                };
+
             static const int halfpatch_size_ = 4;
             static const int patch_size_ = 8;
 
@@ -114,7 +123,7 @@ namespace svo {
                     Vector2d& px_cur);
 
             /// Find a match by searching along the epipolar line without using any features.
-            bool findEpipolarMatchDirect(
+            MatchResult findEpipolarMatchDirect(
                     const Frame& ref_frame,
                     const Frame& cur_frame,
                     const Feature& ref_ftr,

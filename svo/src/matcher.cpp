@@ -176,7 +176,7 @@ bool Matcher::findMatchDirect(
   return success;
 }
 
-bool Matcher::findEpipolarMatchDirect(
+Matcher::MatchResult Matcher::findEpipolarMatchDirect(
     const Frame& ref_frame,
     const Frame& cur_frame,
     const Feature& ref_ftr,
@@ -208,7 +208,7 @@ bool Matcher::findEpipolarMatchDirect(
     const double cosangle = fabs(grad_cur.dot(epi_dir_.normalized()));
     if(cosangle < options_.epi_search_edgelet_max_angle) {
       reject_ = true;
-      return false;
+      return EdgeDirectionViolate;
     }
   }
 
@@ -256,9 +256,9 @@ bool Matcher::findEpipolarMatchDirect(
       px_cur_ = px_scaled*(1<<search_level_);
       px_found = px_cur_;
       if(depthFromTriangulation(T_cur_ref, ref_ftr.f, cur_frame.cam_->cam2world(px_cur_), depth))
-        return true;
+        return Success;
     }
-    return false;
+    return SubpixAlignFail;
   }
 
   size_t n_steps = epi_length_/0.7; // one step per pixel
@@ -268,7 +268,7 @@ bool Matcher::findEpipolarMatchDirect(
   {
     printf("WARNING: skip epipolar search: %zu evaluations, px_lenght=%f, d_min=%f, d_max=%f.\n",
            n_steps, epi_length_, d_min, d_max);
-    return false;
+    return SearchRangeLimited;
   }
 
   // for matching, precompute sum and sum2 of warped reference patch
@@ -326,16 +326,16 @@ bool Matcher::findEpipolarMatchDirect(
         px_cur_ = px_scaled*(1<<search_level_);
         px_found = px_cur_;
         if(depthFromTriangulation(T_cur_ref, ref_ftr.f, cur_frame.cam_->cam2world(px_cur_), depth))
-          return true;
+          return Success;
       }
-      return false;
+      return SubpixAlignFail;
     }
     px_cur_ = cur_frame.cam_->world2cam(uv_best);
     px_found = px_cur_;
     if(depthFromTriangulation(T_cur_ref, ref_ftr.f, vk::unproject2d(uv_best).normalized(), depth))
-      return true;
+      return Success;
   }
-  return false;
+  return Unexpected;
 }
 
 } // namespace svo

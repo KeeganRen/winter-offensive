@@ -235,7 +235,7 @@ void DepthFilter::updateSeeds(FramePtr frame)
     float z_inv_max = max(it->mu - sqrt(it->sigma2), 0.00000001f);
     double z;
     Vector2d px_found;
-    if(!matcher_.findEpipolarMatchDirect(
+    if(Matcher::Success != matcher_.findEpipolarMatchDirect(
         *it->ftr->frame, *frame, *it->ftr, 1.0/it->mu, 1.0/z_inv_min, 1.0/z_inv_max, px_found, z))
     {
       it->b++; // increase outlier probability when no match was found

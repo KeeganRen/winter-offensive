@@ -104,6 +104,7 @@ namespace svo {
             *visiblity_it = true;
 
             // cannot just take the 3d points coordinate because of the reprojection errors in the reference image!!!
+            // YS: i.e. T_f_w_*point is not the same with xyz_ref
             const double depth(((*it)->point->pos_ - ref_pos).norm()); // YS: spherical diameter?
             const Vector3d xyz_ref((*it)->f*depth);
 

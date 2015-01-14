@@ -32,6 +32,9 @@ namespace svo {
         permon_.addLog("prior_num");
         permon_.addLog("update_n_edge");
         permon_.addLog("min_sigma2");
+        permon_.addLog("updated_depth_mean");
+        permon_.addLog("initialize_depth_mean");
+        permon_.addLog("prior_depth_mean");
         permon_.init("depth_map", "/tmp");
 #endif
     }
@@ -151,6 +154,8 @@ namespace svo {
         //extract pixels with salient gradient
         Features new_features;
 #ifdef SVO_TRACE
+        double prior_depth_mean=0.0;
+        int n_has_prior=0;
         permon_.startTimer("edge_detection");
 #endif
         edge_detector_->detect(frame.get(), frame->img_pyr_,
@@ -234,7 +239,11 @@ namespace svo {
                     // has neighbour prior info
                     if (n_obs > 0)
                     {
-                        new_seed_ptr->mu = depth_weighted_sum / weight_sum;
+#ifdef SVO_TRACE
+                        n_has_prior ++;
+                        prior_depth_mean += depth_weighted_sum / weight_sum;
+#endif
+                        new_seed_ptr->mu = weight_sum / depth_weighted_sum;
                         new_seed_ptr->sigma2 = depth_var_sum / n_obs;
                     }
                 }
@@ -255,6 +264,8 @@ namespace svo {
         active_keyframe_ = frame;
 
 #ifdef SVO_TRACE
+        permon_.log("prior_depth_mean", prior_depth_mean/n_has_prior);
+        permon_.log("initialize_depth_mean", new_keyframe_mean_depth_); 
         permon_.log("initialized_n_edge", frame->depth_map_.size());
 #endif
     }
@@ -274,8 +285,11 @@ namespace svo {
 #endif
         auto it = active_keyframe_->depth_map_.begin();
 
+#ifdef SVO_TRACE
         int n_updated = 0;
         double min_sigma2 = 100.0;
+        double updated_depth_mean = 0.0;
+#endif
         const double focal_length = frame->cam_->errorMultiplier2();
         double px_noise = 1.5;
         double px_error_angle = atan(px_noise/(2.0*focal_length)) * 2.0;
@@ -301,41 +315,6 @@ namespace svo {
             float z_inv_max = max(it->second->mu - sqrt(it->second->sigma2), 0.00000001f);
             double z;
             Vector2d px_found;
-            if(!matcher_.findEpipolarMatchDirect(
-                        *it->second->ftr->frame, *frame, *it->second->ftr,
-                        1.0/it->second->mu, 1.0/z_inv_min, 1.0/z_inv_max, px_found, z))
-            {
-                it->second->b++;
-                ++it;
-                continue;
-            }
-            
-            n_updated ++;
-            double tau = computeTau(T_ref_cur, it->second->ftr->f, z, px_error_angle);
-            double tau_inverse = 0.5 * (1.0/max(0.0000001, z-tau) - 1.0/(z+tau));
-
-            // update the estimate
-            updateSeed(1./z, tau_inverse*tau_inverse, it->second);
-
-            if (it->second->sigma2 < min_sigma2)
-                min_sigma2 = it->second->sigma2;
-//            // add the depth map pixel to current frame
-//            if (frame->isKeyframe())
-//            {
-//                Vector2i px_ipos = (px_found + Vector2d(0.5, 0.5)).cast<int>();
-//                Feature *new_ftr = new Feature(frame.get(), px_found, 0);
-//                Seed *new_seed = new Seed(new_ftr, 1.0, 1.0);
-//
-//                new_ftr->type = Feature::EDGELET;
-//                // compute depth in cur frame
-//                new_seed->mu = (T_ref_cur.inverse()*(1.0/it->second->mu * it->second->ftr->f))[2];
-//                // uncertainty in cur frame
-//                double dot_res = it->second->ftr->f.dot(new_ftr->f);
-//                double cos_gama2 = dot_res*dot_res/new_ftr->f.squaredNorm();
-//                new_seed->sigma2 = it->second->sigma2 * cos_gama2;
-//                new_seed->batch_id = -1;    // -1 means a temp seed(for propagation), will be deleted. TODO: is there a better way?
-//                frame->depth_map_.insert(make_pair(px_ipos[0] + px_ipos[1]*frame->cam_->width(), new_seed));
-//            }
 
             if (isnan(z_inv_min))
             {
@@ -343,14 +322,67 @@ namespace svo {
                 delete it->second->ftr;
                 delete it->second;
                 it = frame->depth_map_.erase(it);
+                continue;
             }
-            else
+
+            Matcher::MatchResult mres = matcher_.findEpipolarMatchDirect(*active_keyframe_, *frame, *it->second->ftr,
+                    1.0/it->second->mu, 1.0/z_inv_min, 1.0/z_inv_max, px_found, z);
+            
+            if (mres == Matcher::EdgeDirectionViolate)  // we do not penalize those gradient not match
+            {
                 ++it;
+                continue;
+            }
+            else if (mres != Matcher::Success)
+            {
+                it->second->b++;
+                if (it->second->a/(it->second->a+it->second->b) < 0.1) // inlier ratio too low
+                {
+                    delete it->second->ftr;
+                    delete it->second;
+                    it = active_keyframe_->depth_map_.erase(it);
+                }
+                else
+                    ++it;
+                continue;
+            }
+            
+            double tau = computeTau(T_ref_cur, it->second->ftr->f, z, px_error_angle);
+            double tau_inverse = 0.5 * (1.0/max(0.0000001, z-tau) - 1.0/(z+tau));
+
+            // update the estimate
+            updateSeed(1./z, tau_inverse*tau_inverse, it->second);
+
+#ifdef SVO_TRACE
+            n_updated ++;
+            if (it->second->sigma2 < min_sigma2)
+                min_sigma2 = it->second->sigma2;
+#endif
+            // add the depth map pixel to current frame
+            Vector2i px_ipos = (px_found + Vector2d(0.5, 0.5)).cast<int>();
+            Feature *new_ftr = new Feature(frame.get(), px_found, 0);
+            Seed *new_seed = new Seed(new_ftr, 1.0, 1.0);
+
+            new_ftr->type = Feature::EDGELET;
+            // compute depth in cur frame
+            new_seed->mu = 1.0/(T_ref_cur.inverse()*(1.0/it->second->mu * it->second->ftr->f))[2];
+#ifdef SVO_TRACE
+            updated_depth_mean += 1.0/new_seed->mu;
+#endif
+            // uncertainty in cur frame
+            double d1_d0 = new_seed->mu / it->second->mu;
+            double d1_d0_2 = d1_d0 * d1_d0;
+            double d1_d0_4 = d1_d0_2 * d1_d0_2;
+            new_seed->sigma2 = d1_d0_4*it->second->sigma2 + 0.01;
+            new_seed->batch_id = -1;    // -1 means a temp seed(for propagation), will be deleted. TODO: is there a better way?
+            frame->depth_map_.insert(make_pair(px_ipos[0] + px_ipos[1]*frame->cam_->width(), new_seed));
+            ++it;
         }
 #ifdef SVO_TRACE
         permon_.stopTimer("depth_map_update");
         permon_.log("update_n_edge", n_updated);
         permon_.log("min_sigma2", min_sigma2);
+        permon_.log("updated_depth_mean", updated_depth_mean/n_updated);
         permon_.writeToFile();
 #endif
 
