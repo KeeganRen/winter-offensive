@@ -54,8 +54,10 @@ public:
   Matrix<double, 6, 6>          Cov_;                   //!< Covariance. YS: of %xi ?
   ImgPyr                        img_pyr_;               //!< Image Pyramid.
   Features                      fts_;                   //!< List of features in the image.
+  bool                          sparse_aligned_;
   DepthMap                      depth_map_;              // YS: store those have large gradient.
   boost::mutex                  depth_map_mut_;
+  bool                          edge_extracted_;
   vector<Feature*>              key_pts_;               //!< Five features and associated 3D points which are used to detect if two frames have overlapping field of view.
   bool                          is_keyframe_;           //!< Was this frames selected as keyframe?
   g2oFrameSE3*                  v_kf_;                  //!< Temporary pointer to the g2o node object of the keyframe.

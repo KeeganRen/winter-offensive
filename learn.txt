@@ -160,3 +160,6 @@ candidate在新的关键帧加入的时候会转运，那时如果某个candidat
 考虑了edge的地方：
 matcher.cpp
 reprojector.cpp
+
+depth_filter中，判断收敛的条件是
+if(sqrt(it->sigma2) < it->z_range/options_.seed_convergence_sigma2_thresh)

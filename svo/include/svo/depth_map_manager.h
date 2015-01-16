@@ -30,8 +30,7 @@ namespace svo {
             } options_;
 
             DepthMapManager(
-                    feature_detection::DetectorPtr edge_detector,
-                    Map& map);
+                    feature_detection::DetectorPtr edge_detector);
             virtual ~DepthMapManager();
 
             void startThread();
@@ -52,9 +51,10 @@ namespace svo {
             bool depth_map_updating_halt_;
             std::queue<FramePtr> frame_queue_;
             boost::mutex frame_queue_mut_;
+            std::list<FramePtr> keyframe_neighbour_;
+            boost::mutex keyframe_neighbour_mut_;
             boost::condition_variable frame_queue_cond_;
             Matcher matcher_;
-            Map& map_;
 
             FramePtr new_keyframe_;
             bool new_keyframe_set_;

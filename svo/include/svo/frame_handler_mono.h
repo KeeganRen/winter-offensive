@@ -65,7 +65,7 @@ protected:
   Reprojector reprojector_;                     //!< Projects points from other keyframes into the current frame
   FramePtr new_frame_;                          //!< Current frame.
   FramePtr last_frame_;                         //!< Last frame, not necessarily a keyframe.
-  set<FramePtr> core_kfs_;                      //!< Keyframes in the closer neighbourhood. YS: only used in BA
+  set<FramePtr> core_kfs_;                      //!< Keyframes in the closer neighbourhood. YS: only used in BA, and in display!
   vector< pair<FramePtr,size_t> > overlap_kfs_; //!< All keyframes with overlapping field of view. the paired number specifies how many common mappoints are observed TODO: why vector!?
   initialization::KltHomographyInit klt_homography_init_; //!< Used to estimate pose of the first two keyframes by estimating a homography.
   DepthFilter* depth_filter_;                   //!< Depth estimation algorithm runs in a parallel thread and is used to initialize new 3D points.

@@ -54,7 +54,7 @@ void FrameHandlerMono::initialize()
       &MapPointCandidates::newCandidatePoint, &map_.point_candidates_, _1, _2);
 
   depth_filter_ = new DepthFilter(feature_detector, depth_filter_cb);
-  depth_map_manager_ = new DepthMapManager(edge_detector, map_);
+  depth_map_manager_ = new DepthMapManager(edge_detector);
 
   depth_filter_->startThread();
 #ifdef SVO_USE_EDGE
