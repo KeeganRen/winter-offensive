@@ -313,6 +313,7 @@ namespace svo {
             const double focal_length = frame->cam_->errorMultiplier2();
             double px_noise = 1.5;
             double px_error_angle = atan(px_noise/(2.0*focal_length)) * 2.0;
+            int good_edge=0;
 
             while (it != active_keyframe_->depth_map_.end())
             {
@@ -373,6 +374,8 @@ namespace svo {
                 // update the estimate
                 updateSeed(1./z, tau_inverse*tau_inverse, it->second);
 
+                if(sqrt(it->second->sigma2) < 0.005*it->second->z_range)
+                    good_edge++;
 #ifdef SVO_TRACE
                 n_updated ++;
 #endif
@@ -412,6 +415,7 @@ namespace svo {
                 }
                 ++it;
             }
+            active_keyframe_->depth_map_quality_ = good_edge;
         }
 #ifdef SVO_TRACE
         permon_.stopTimer("depth_map_update");

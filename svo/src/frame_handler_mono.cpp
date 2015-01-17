@@ -39,6 +39,9 @@ FrameHandlerMono::FrameHandlerMono(vk::AbstractCamera* cam) :
   depth_map_manager_(NULL)
 {
   initialize();
+//    cv::namedWindow("ref");
+//    cv::namedWindow("new");
+//    cv::startWindowThread();
 }
 
 void FrameHandlerMono::initialize()
@@ -155,6 +158,7 @@ FrameHandlerBase::UpdateResult FrameHandlerMono::processFrame()
   SparseImgAlign img_align(Config::kltMaxLevel(), Config::kltMinLevel(),
                            30, SparseImgAlign::GaussNewton, false, false);
   size_t img_align_n_tracked = img_align.run(last_frame_, new_frame_);
+  new_frame_->sparse_aligned_=true;
   SVO_STOP_TIMER("sparse_img_align");
   SVO_LOG(img_align_n_tracked);
   SVO_DEBUG_STREAM("Img Align:\t Tracked = " << img_align_n_tracked);
@@ -174,6 +178,33 @@ FrameHandlerBase::UpdateResult FrameHandlerMono::processFrame()
     tracking_quality_ = TRACKING_INSUFFICIENT;
     return RESULT_FAILURE;
   }
+
+//  Sophus::SE3 temp_Tkw = new_frame_->T_f_w_;
+    // align with neighbour keyframe
+    SVO_START_TIMER("semi_dense_align");
+    for(auto ovlp_kf_it=overlap_kfs_.begin(), ovlp_kf_ite=overlap_kfs_.end(); ovlp_kf_it != ovlp_kf_ite; ++ovlp_kf_it)
+    {
+        boost::unique_lock<boost::mutex> lock(ovlp_kf_it->first->depth_map_mut_, boost::defer_lock);
+        if (lock.try_lock())
+        {   
+            ROS_INFO_STREAM("quality " << ovlp_kf_it->first->depth_map_quality_ << " " << overlap_kfs_.size());
+            if(ovlp_kf_it->first->depth_map_quality_>400)
+            {
+//                cv::imshow("ref", ovlp_kf_it->first->img_pyr_[0]);
+//                cv::imshow("new", new_frame_->img_pyr_[0]);
+                SparseImgAlign dense_align(Config::kltMaxLevel(), Config::kltMinLevel(),
+                                       30, SparseImgAlign::GaussNewton, false, false);
+                size_t dense_align_n_tracked = dense_align.run(ovlp_kf_it->first, new_frame_);
+                SVO_LOG(dense_align_n_tracked);
+                SVO_INFO_STREAM("dense tracking complete! " << dense_align_n_tracked);
+                break;
+            }
+        }
+    }
+    SVO_STOP_TIMER("semi_dense_align");
+
+//  Sophus::SE3 dense_aligned_Tkw=new_frame_->T_f_w_;
+//  new_frame_->T_f_w_ = temp_Tkw;
 
   // pose optimization
   SVO_START_TIMER("pose_optimizer");

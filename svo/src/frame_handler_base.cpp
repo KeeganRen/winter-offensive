@@ -48,6 +48,7 @@ FrameHandlerBase::FrameHandlerBase() :
   g_permon = new vk::PerformanceMonitor();
   g_permon->addTimer("pyramid_creation");
   g_permon->addTimer("sparse_img_align");
+  g_permon->addTimer("semi_dense_align");
   g_permon->addTimer("reproject");
   g_permon->addTimer("reproject_kfs");
   g_permon->addTimer("reproject_candidates");
@@ -58,6 +59,7 @@ FrameHandlerBase::FrameHandlerBase() :
   g_permon->addTimer("tot_time");
   g_permon->addLog("timestamp");
   g_permon->addLog("img_align_n_tracked");
+  g_permon->addLog("dense_align_n_tracked");
   g_permon->addLog("repr_n_mps");
   g_permon->addLog("repr_n_new_references");
   g_permon->addLog("sfba_thresh");

@@ -28,6 +28,7 @@ class AbstractCamera;
 namespace svo {
 
 class Feature;
+struct Seed;
 
 /// Optimize the pose of the frame by minimizing the photometric error of feature patches.
 class SparseImgAlign : public vk::NLLSSolver<6, SE3>

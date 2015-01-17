@@ -56,6 +56,7 @@ public:
   Features                      fts_;                   //!< List of features in the image.
   bool                          sparse_aligned_;
   DepthMap                      depth_map_;              // YS: store those have large gradient.
+  int                           depth_map_quality_;
   boost::mutex                  depth_map_mut_;
   bool                          edge_extracted_;
   vector<Feature*>              key_pts_;               //!< Five features and associated 3D points which are used to detect if two frames have overlapping field of view.
