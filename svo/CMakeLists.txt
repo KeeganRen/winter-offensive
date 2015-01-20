@@ -110,7 +110,8 @@ LIST(APPEND SOURCEFILES
   src/depth_filter.cpp
   src/depth_map_manager.cpp
   src/config.cpp
-  src/sparse_img_align.cpp)
+  src/sparse_img_align.cpp
+  src/semi_dense_align.cpp)
 
 # Add g2o if available
 IF(HAVE_G2O)

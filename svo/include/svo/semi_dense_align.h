@@ -14,8 +14,8 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef SVO_SPARSE_IMG_ALIGN_H_
-#define SVO_SPARSE_IMG_ALIGN_H_
+#ifndef SVO_SEMI_DENSE_ALIGN_H_
+#define SVO_SEMI_DENSE_ALIGN_H_
 
 #include <vikit/nlls_solver.h>
 #include <vikit/performance_monitor.h>
@@ -28,11 +28,12 @@ class AbstractCamera;
 namespace svo {
 
 class Feature;
+struct Seed;
 
 /// Optimize the pose of the frame by minimizing the photometric error of feature patches.
-class SparseImgAlign : public vk::NLLSSolver<6, SE3>
+class SemiDenseAlign : public vk::NLLSSolver<6, SE3>
 {
-  static const int patch_halfsize_ = 2;
+  static const int patch_halfsize_ = 1;
   static const int patch_size_ = 2*patch_halfsize_;
   static const int patch_area_ = patch_size_*patch_size_;
 public:
@@ -40,7 +41,21 @@ public:
 
   cv::Mat resimg_;
 
-  SparseImgAlign(
+  struct Options{
+      bool weighted;
+      bool robust;
+      double intensity_err_squared;
+      double dep_var_scale;
+
+      Options():
+          weighted(true),
+          robust(false),
+          intensity_err_squared(16),
+          dep_var_scale(10000.0)
+      {}
+  }options_;
+
+  SemiDenseAlign(
       int n_levels,
       int min_level,
       int n_iter,
@@ -69,6 +84,7 @@ protected:
   bool have_ref_patch_cache_;
   cv::Mat ref_patch_cache_;
   std::vector<bool> visible_fts_;
+  std::vector<double> weight_cache_;
 
   // YS: compute ref_patch_cache_ and jacobian_cache_
   void precomputeReferencePatches(); 
@@ -81,4 +97,4 @@ protected:
 
 } // namespace svo
 
-#endif // SVO_SPARSE_IMG_ALIGN_H_
+#endif // SVO_SEMI_DENSE_ALIGN_H_

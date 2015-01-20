@@ -34,7 +34,7 @@ namespace svo {
         permon_.addLog("updated_depth_mean");
         permon_.addLog("initialize_depth_mean");
         permon_.addLog("prior_depth_mean");
-        permon_.addLog("av_baseline_width");
+        permon_.addLog("baseline_width");
         permon_.init("depth_map", "/tmp");
 #endif
     }
@@ -269,6 +269,7 @@ namespace svo {
 
 #ifdef SVO_TRACE
             permon_.log("initialized_n_edge", frame->depth_map_.size());
+            permon_.log("initialize_depth_mean", new_keyframe_mean_depth_);
 #endif
         }
         else    // exits in neighbour
@@ -288,8 +289,8 @@ namespace svo {
 
     void DepthMapManager::updateMap(FramePtr frame)
     {
+        double baseline_width=-1.0; 
 #ifdef SVO_TRACE
-        double av_baseline_width=-1.0; 
         int n_updated = 0;
         permon_.startTimer("depth_map_update");
 #endif
@@ -307,8 +308,12 @@ namespace svo {
             lock_t lock(active_keyframe_->depth_map_mut_);  //TODO: guarantee read/write protection
             auto it = active_keyframe_->depth_map_.begin();
 
+            // small baseline width results larger uncertainty
+            baseline_width = (active_keyframe_->T_f_w_.translation() - frame->T_f_w_.translation()).norm();
+            if (baseline_width < Config::minBaselineToDepthRatio()*new_keyframe_mean_depth_)
+                continue;
 #ifdef SVO_TRACE
-            av_baseline_width = (active_keyframe_->T_f_w_.translation() - frame->T_f_w_.translation()).norm();
+        permon_.log("baseline_width", baseline_width);
 #endif
             const double focal_length = frame->cam_->errorMultiplier2();
             double px_noise = 1.5;
@@ -375,7 +380,11 @@ namespace svo {
                 updateSeed(1./z, tau_inverse*tau_inverse, it->second);
 
                 if(sqrt(it->second->sigma2) < 0.005*it->second->z_range)
+                {
+                    it->second->converged = true;
                     good_edge++;
+                }
+
 #ifdef SVO_TRACE
                 n_updated ++;
 #endif
@@ -420,7 +429,6 @@ namespace svo {
 #ifdef SVO_TRACE
         permon_.stopTimer("depth_map_update");
         permon_.log("update_n_edge", n_updated);
-        permon_.log("av_baseline_width", av_baseline_width);
         permon_.writeToFile();
 #endif
         if (options_.verbose)

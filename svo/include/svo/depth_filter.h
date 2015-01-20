@@ -37,7 +37,7 @@ namespace svo {
     {
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
-            static int batch_counter;
+        static int batch_counter;
         static int seed_counter;
         int batch_id;                //!< Batch id is the id of the keyframe for which the seed was created.
         int id;                      //!< Seed ID, only used for visualization.
@@ -48,6 +48,7 @@ namespace svo {
         float z_range;               //!< Max range of the possible depth.
         float sigma2;                //!< Variance of normal distribution.
         Matrix2d patch_cov;          //!< Patch covariance in reference image. YS: for what?
+        bool converged;
         Seed(Feature* ftr, float depth_mean, float depth_min);
     };
 

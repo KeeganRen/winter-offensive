@@ -228,7 +228,7 @@ Matcher::MatchResult Matcher::findEpipolarMatchDirect(
   /*
   {
       static int tmp_n=0;
-      if (tmp_n < 500)
+      if (tmp_n < 500 && ref_ftr.type == Feature::EDGELET)
       {
           stringstream ss;
           cv::Mat patch_img = cv::Mat(patch_size_, patch_size_, CV_8U, patch_);

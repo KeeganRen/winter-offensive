@@ -38,6 +38,7 @@ struct Feature
   int level;            //!< Image pyramid level where feature was extracted.
   Point* point;         //!< Pointer to 3D point which corresponds to the feature.
   Vector2d grad;        //!< Dominant gradient direction for edglets, normalized.
+  double grad_mag;      //!< gradient magnitude
 
   Feature(Frame* _frame, const Vector2d& _px, int _level) :
     type(CORNER),

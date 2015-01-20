@@ -124,7 +124,7 @@ EdgeDetector::EdgeDetector(
         const int n_pyr_levels) :
             AbstractDetector(img_width, img_height, cell_size, n_pyr_levels)
 {
-    grad_thresh_ = 100000;
+    grad_thresh_ = 350;
 }
 
 void EdgeDetector::detect(
@@ -155,10 +155,10 @@ void EdgeDetector::detect(
                 int16_t gy = dydata[j];
 
                 int grad_norm_squared = gx*gx + gy*gy;
-                if (grad_norm_squared > grad_thresh_)
+                if (grad_norm_squared > grad_thresh_*grad_thresh_)
                 {
                     Edge edge(j*scale, i*scale,
-                            grad_norm_squared, L, Vector2d(gx,gy)/grad_norm_squared);
+                            sqrt(grad_norm_squared), L, Vector2d(gx,gy));
                     int key = edge.x + edge.y * img_pyr[0].cols;
                     auto occupancy = edges.find(key);
                     if(occupancy != edges.end())
@@ -181,14 +181,15 @@ void EdgeDetector::detect(
     {
         Feature* tmp_fts = new Feature(frame, Vector2d(it->second.x, it->second.y), it->second.level);
         tmp_fts->grad = it->second.grad_;
+        tmp_fts->grad_mag = it->second.score;
         tmp_fts->type = Feature::EDGELET;
         fts.push_back(tmp_fts);
     }
 
-    if (fts.size() > 1500)
-        grad_thresh_ *= 1.08;
+    if (fts.size() > 1200)
+        grad_thresh_ *= 1.05;
     else if(fts.size() < 800)
-        grad_thresh_ *= 0.9;
+        grad_thresh_ *= 0.95;
 }
 
 } // namespace feature_detection

@@ -54,7 +54,6 @@ public:
   Matrix<double, 6, 6>          Cov_;                   //!< Covariance. YS: of %xi ?
   ImgPyr                        img_pyr_;               //!< Image Pyramid.
   Features                      fts_;                   //!< List of features in the image.
-  bool                          sparse_aligned_;
   DepthMap                      depth_map_;              // YS: store those have large gradient.
   int                           depth_map_quality_;
   boost::mutex                  depth_map_mut_;

@@ -42,7 +42,8 @@ Seed::Seed(Feature* ftr, float depth_mean, float depth_min) :
     b(10),
     mu(1.0/depth_mean),
     z_range(1.0/depth_min),
-    sigma2(z_range*z_range/36)
+    sigma2(z_range*z_range/36),
+    converged(false)
 {}
 
 DepthFilter::DepthFilter(feature_detection::DetectorPtr feature_detector, callback_t seed_converged_cb) :

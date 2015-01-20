@@ -163,3 +163,13 @@ reprojector.cpp
 
 depth_filter中，判断收敛的条件是
 if(sqrt(it->sigma2) < it->z_range/options_.seed_convergence_sigma2_thresh)
+  {
+      static int tmp_n=0;
+      if (tmp_n < 500 && ref_ftr.type == Feature::EDGELET)
+      {
+          stringstream ss;
+          cv::Mat patch_img = cv::Mat(patch_size_, patch_size_, CV_8U, patch_);
+          ss << "/home/yangsheng/Downloads/patch/" << "patch_" << tmp_n++ << ".png";
+          cv::imwrite(ss.str(), patch_img);
+      }
+  }

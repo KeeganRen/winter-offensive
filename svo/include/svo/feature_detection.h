@@ -46,10 +46,10 @@ struct Edge
   int x;        //!< x-coordinate of corner in the image.
   int y;        //!< y-coordinate of corner in the image.
   int level;    //!< pyramid level of the corner.
-  float score;  //!< shi-tomasi score of the corner.
-  Vector2d grad_;  //!< for gradient-features: dominant gradient angle.
+  float score;  //!< gradient magnitude of the edge
+  Vector2d grad_;  //!< for gradient-features: dominant gradient angle. normalized
   Edge(int x, int y, float score, int level, Vector2d grad) :
-    x(x), y(y), level(level), score(score), grad_(grad)
+    x(x), y(y), level(level), score(score), grad_(grad/score)
   {}
 };
 typedef unordered_map<int, Edge> Edges;

@@ -60,6 +60,7 @@ FrameHandlerBase::FrameHandlerBase() :
   g_permon->addLog("timestamp");
   g_permon->addLog("img_align_n_tracked");
   g_permon->addLog("dense_align_n_tracked");
+  g_permon->addLog("debug_value");  // for debug
   g_permon->addLog("repr_n_mps");
   g_permon->addLog("repr_n_new_references");
   g_permon->addLog("sfba_thresh");

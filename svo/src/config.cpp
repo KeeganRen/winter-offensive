@@ -52,7 +52,7 @@ Config::Config() :
     max_fts(vk::getParam<int>("svo/max_fts", 120)),
     quality_min_fts(vk::getParam<int>("svo/quality_min_fts", 50)),
     quality_max_drop_fts(vk::getParam<int>("svo/quality_max_drop_fts", 100)),
-    min_baseline_to_depth_ratio(vk::getParam<double>("svo/min_baseline_to_depth_ratio", 0.15))
+    min_baseline_to_depth_ratio(vk::getParam<double>("svo/min_baseline_to_depth_ratio", 0.08))
 #else
     trace_name("svo"),
     trace_dir("/tmp"),
