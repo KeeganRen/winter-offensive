@@ -255,13 +255,16 @@ void Visualizer::displayKeyframeWithMps(const FramePtr& frame, int ts)
       {
           list<Vector3d> cloud;
           boost::unique_lock<boost::mutex> lock(frame->depth_map_mut_);
-          for(auto it=frame->depth_map_.begin(), ite=frame->depth_map_.end(); it != ite; ++it)
+          if (!frame->depth_map_.empty())
           {
-              if (sqrt(it->second->sigma2) < 0.005*it->second->z_range)
-                  cloud.push_back(T_world_from_vision_*frame->T_f_w_.inverse()*(1.0/it->second->mu * it->second->ftr->f)); 
+              for(auto it=frame->depth_map_.begin(), ite=frame->depth_map_.end(); it != ite; ++it)
+              {
+                  if (sqrt(it->second->sigma2) < 0.004*it->second->z_range)
+                      cloud.push_back(T_world_from_vision_*frame->T_f_w_.inverse()*(1.0/it->second->mu * it->second->ftr->f)); 
+              }
+              vk::output_helper::publishPointCloud(pub_points_, cloud, "cloud",
+                      ros::Time::now(), frame->id_, 0, 0.008, Vector3d(0.0, 0.3, 0.0), publish_points_display_time_);
           }
-          vk::output_helper::publishPointCloud(pub_points_, cloud, "cloud",
-                  ros::Time::now(), frame->id_, 0, 0.008, Vector3d(0.0, 0.3, 0.0), publish_points_display_time_);
       }
 
   // publish point cloud and links

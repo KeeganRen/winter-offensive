@@ -96,9 +96,6 @@ public:
   /// Minimum distance between two keyframes. Relative to the average height in the map.
   static double& kfSelectMinDist() { return getInstance().kfselect_mindist; }
 
-  /// Minimum baseline length to mean frame depth ratio for stereo match.
-  static double& minBaselineToDepthRatio() { return getInstance().min_baseline_to_depth_ratio;}
-
   /// Select only features with a minimum Harris corner score for triangulation.
   static double& triangMinCornerScore() { return getInstance().triang_min_corner_score; }
 
@@ -121,6 +118,14 @@ public:
 
   /// If within one frame, this amount of features are dropped. Tracking quality is bad.
   static int& qualityMaxFtsDrop() { return getInstance().quality_max_drop_fts; }
+
+  /// Minimum baseline length to mean frame depth ratio for stereo match.
+  static double& minBaselineToDepthRatio() { return getInstance().min_baseline_to_depth_ratio;}
+
+  /// Minimum depth map size of keyframe for being a tracking reference
+  static int& minDepthMapQuality() { return getInstance().min_depth_map_quality;}
+
+  static double& edgeInverseDepthVarAccept() { return getInstance().edge_inverse_depth_var_accept;}
 
 private:
   Config();
@@ -157,6 +162,8 @@ private:
   int quality_max_drop_fts;
 
   double min_baseline_to_depth_ratio;
+  int min_depth_map_quality;
+  double edge_inverse_depth_var_accept;
 };
 
 } // namespace svo

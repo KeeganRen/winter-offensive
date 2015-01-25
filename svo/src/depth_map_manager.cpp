@@ -379,7 +379,7 @@ namespace svo {
                 // update the estimate
                 updateSeed(1./z, tau_inverse*tau_inverse, it->second);
 
-                if(sqrt(it->second->sigma2) < 0.005*it->second->z_range)
+                if(sqrt(it->second->sigma2) < Config::edgeInverseDepthVarAccept()*it->second->z_range)
                 {
                     it->second->converged = true;
                     good_edge++;

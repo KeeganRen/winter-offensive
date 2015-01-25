@@ -179,6 +179,7 @@ FrameHandlerBase::UpdateResult FrameHandlerMono::processFrame()
     return RESULT_FAILURE;
   }
 
+#ifdef SVO_USE_EDGE
 //    Sophus::SE3 temp_Tkw = new_frame_->T_f_w_;
     // align with neighbour keyframe
     for(auto ovlp_kf_it=overlap_kfs_.begin(), ovlp_kf_ite=overlap_kfs_.end(); ovlp_kf_it != ovlp_kf_ite; ++ovlp_kf_it)
@@ -189,21 +190,33 @@ FrameHandlerBase::UpdateResult FrameHandlerMono::processFrame()
             double depth_mean, depth_min;
             frame_utils::getSceneDepth(*(ovlp_kf_it->first), depth_mean, depth_min);
             double baseline = (new_frame_->T_f_w_.translation() - ovlp_kf_it->first->T_f_w_.translation()).norm();
-            if(ovlp_kf_it->first->depth_map_quality_>400 && baseline < 5*Config::minBaselineToDepthRatio()*depth_mean)
+            if(ovlp_kf_it->first->depth_map_quality_>Config::minDepthMapQuality() && baseline < 5*Config::minBaselineToDepthRatio()*depth_mean)
             {
                 SVO_START_TIMER("semi_dense_align");
+//                cv::Mat rgb_img(ovlp_kf_it->first->img_pyr_[0].size(), CV_8UC3);
+//                cv::cvtColor(ovlp_kf_it->first->img_pyr_[0], rgb_img, CV_GRAY2RGB);
+//                for (auto it=ovlp_kf_it->first->depth_map_.begin(), ite=ovlp_kf_it->first->depth_map_.end();
+//                        it != ite; ++it)
+//                {
+//                    if (it->second->converged)
+//                        cv::rectangle(rgb_img, cv::Point2f(it->second->ftr->px[0]-1, it->second->ftr->px[1]-1),
+//                                cv::Point2f(it->second->ftr->px[0]+1, it->second->ftr->px[1]+1),
+//                                cv::Scalar(0,255,0), CV_FILLED);
+//                }
+//                cv::imshow("ref", rgb_img);
                 SemiDenseAlign dense_align(Config::kltMaxLevel(), Config::kltMinLevel(),
                                        30, SemiDenseAlign::GaussNewton, false, false);
                 size_t dense_align_n_tracked = dense_align.run(ovlp_kf_it->first, new_frame_);
                 SVO_STOP_TIMER("semi_dense_align");
                 SVO_LOG(dense_align_n_tracked);
-                SVO_INFO_STREAM("dense tracking complete! " << dense_align_n_tracked);
+                SVO_INFO_STREAM("dense tracking complete! " << 0);
                 break;
             }
         }
     }
 //    Sophus::SE3 dense_aligned_Tkw=new_frame_->T_f_w_;
 //    new_frame_->T_f_w_ = temp_Tkw;
+#endif
 
   // pose optimization
   SVO_START_TIMER("pose_optimizer");

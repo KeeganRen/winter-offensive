@@ -30,7 +30,7 @@ Config::Config() :
     core_n_kfs(vk::getParam<int>("svo/core_n_kfs", 5)),
     map_scale(vk::getParam<double>("svo/map_scale", 1.0)),
     grid_size(vk::getParam<int>("svo/grid_size", 15)),
-    init_min_disparity(vk::getParam<double>("svo/init_min_disparity", 50.0)),
+    init_min_disparity(vk::getParam<double>("svo/init_min_disparity", 30.0)),
     init_min_tracked(vk::getParam<int>("svo/init_min_tracked", 50)),
     init_min_inliers(vk::getParam<int>("svo/init_min_inliers", 40)),
     klt_max_level(vk::getParam<int>("svo/klt_max_level", 4)),
@@ -52,7 +52,9 @@ Config::Config() :
     max_fts(vk::getParam<int>("svo/max_fts", 120)),
     quality_min_fts(vk::getParam<int>("svo/quality_min_fts", 50)),
     quality_max_drop_fts(vk::getParam<int>("svo/quality_max_drop_fts", 100)),
-    min_baseline_to_depth_ratio(vk::getParam<double>("svo/min_baseline_to_depth_ratio", 0.08))
+    min_baseline_to_depth_ratio(vk::getParam<double>("svo/min_baseline_to_depth_ratio", 0.08)),
+        min_depth_map_quality(vk::getParam<int>("svo/min_depth_map_quality", 300)),
+    edge_inverse_depth_var_accept(vk::getParam<double>("svo/edge_inverse_depth_var_accept", 0.005))
 #else
     trace_name("svo"),
     trace_dir("/tmp"),
@@ -83,7 +85,9 @@ Config::Config() :
     max_fts(120),
     quality_min_fts(50),
     quality_max_drop_fts(40),
-    min_baseline_to_depth_ratio(0.15)
+    min_baseline_to_depth_ratio(0.15),
+    min_depth_map_quality(300),
+    edge_inverse_depth_var_accept(0.005)
 #endif
 {}
 

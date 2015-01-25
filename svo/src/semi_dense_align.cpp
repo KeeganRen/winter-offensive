@@ -39,6 +39,7 @@ namespace svo {
         method_ = method;
         verbose_ = verbose;
         eps_ = 0.000001;
+        weight_function_.reset(new vk::robust_cost::HuberWeightFunction());
     }
 
     size_t SemiDenseAlign::run(FramePtr ref_frame, FramePtr cur_frame)
@@ -219,6 +220,7 @@ namespace svo {
             const float w_cur_br = subpix_u_cur * subpix_v_cur;
             float* ref_patch_cache_ptr = reinterpret_cast<float*>(ref_patch_cache_.data) + patch_area_*feature_counter;
             size_t pixel_counter = 0; // is used to compute the index of the cached jacobian
+            
             for(int y=0; y<patch_size_; ++y)
             {
                 uint8_t* cur_img_ptr = (uint8_t*) cur_img.data + (v_cur_i+y-patch_halfsize_)*stride + (u_cur_i-patch_halfsize_);
@@ -230,10 +232,17 @@ namespace svo {
                     const float res = intensity_cur - (*ref_patch_cache_ptr);
 
                     // robustification
-                    float weight = 1.0;
+                    float final_weight = 1.0;
+                    float huber_weight = 1.0;
+
+                    if (options_.robust)
+                        huber_weight = weight_function_->value(res * sqrt(*weight_it)); 
+
+                    final_weight = huber_weight * *weight_it;
 
                     // if options_.weighted is not set, weight_it always has value 1.0
-                    chi2 += res*res* *weight_it;
+                    chi2 += final_weight * res * res;
+
                     n_meas_++;
 
                     // YS: stacking the Jacobians
@@ -241,8 +250,8 @@ namespace svo {
                     {
                         // compute Jacobian, weighted Hessian and weighted "steepest descend images" (times error)
                         const Vector6d J(jacobian_cache_.col(feature_counter*patch_area_ + pixel_counter));
-                        H_.noalias() += J*J.transpose()*weight;
-                        Jres_.noalias() -= J*res*weight;
+                        H_.noalias() += J*J.transpose()*final_weight;
+                        Jres_.noalias() -= J*res*final_weight;
                         if(display_)
                             resimg_.at<float>((int) v_cur+y-patch_halfsize_, (int) u_cur+x-patch_halfsize_) = res/255.0;
                     }

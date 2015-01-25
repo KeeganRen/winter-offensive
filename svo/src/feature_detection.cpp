@@ -124,7 +124,7 @@ EdgeDetector::EdgeDetector(
         const int n_pyr_levels) :
             AbstractDetector(img_width, img_height, cell_size, n_pyr_levels)
 {
-    grad_thresh_ = 350;
+    grad_thresh_ = 450;
 }
 
 void EdgeDetector::detect(
