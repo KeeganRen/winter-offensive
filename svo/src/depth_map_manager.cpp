@@ -99,13 +99,11 @@ namespace svo {
             initializeDepthMap(frame);
     }
 
-    void DepthMapManager::removeKeyframe(FramePtr frame)
+    void DepthMapManager::removeKeyframe(FramePtr frame) //TODO: bug! must be fixed
     {
-        if (frame == active_keyframe_) //rarely happen
-        {
-            depth_map_updating_halt_ = true;
-            active_keyframe_ = FramePtr();
-        }
+        depth_map_updating_halt_ = true;
+        lock_t lock(keyframe_neighbour_mut_);
+        keyframe_neighbour_.remove(frame);
     }
 
     void DepthMapManager::updateDMapLoop()
@@ -297,6 +295,8 @@ namespace svo {
         lock_t lock(keyframe_neighbour_mut_);
         for (auto kf_it=keyframe_neighbour_.begin(), kf_ite=keyframe_neighbour_.end(); kf_it!=kf_ite; ++kf_it)
         {           
+            if (depth_map_updating_halt_)
+                return;
             active_keyframe_ = *kf_it;
             if (!active_keyframe_)
             {

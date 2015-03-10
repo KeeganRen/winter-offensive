@@ -110,7 +110,7 @@ public:
   /// How much (in milliseconds) is the camera delayed with respect to the imu.
   static double& imgImuDelay() { return getInstance().img_imu_delay; }
 
-  /// Maximum number of features that should be tracked.
+  /// Maximum number of features that should be tracked (i.e. reprojected).
   static size_t& maxFts() { return getInstance().max_fts; }
 
   /// If the number of tracked features drops below this threshold. Tracking quality is bad.

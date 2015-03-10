@@ -209,7 +209,7 @@ FrameHandlerBase::UpdateResult FrameHandlerMono::processFrame()
                 size_t dense_align_n_tracked = dense_align.run(ovlp_kf_it->first, new_frame_);
                 SVO_STOP_TIMER("semi_dense_align");
                 SVO_LOG(dense_align_n_tracked);
-                SVO_INFO_STREAM("dense tracking complete! " << 0);
+                SVO_INFO_STREAM("dense tracking complete! " << dense_align_n_tracked);
                 break;
             }
         }

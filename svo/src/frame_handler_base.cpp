@@ -48,7 +48,6 @@ FrameHandlerBase::FrameHandlerBase() :
   g_permon = new vk::PerformanceMonitor();
   g_permon->addTimer("pyramid_creation");
   g_permon->addTimer("sparse_img_align");
-  g_permon->addTimer("semi_dense_align");
   g_permon->addTimer("reproject");
   g_permon->addTimer("reproject_kfs");
   g_permon->addTimer("reproject_candidates");
@@ -57,9 +56,11 @@ FrameHandlerBase::FrameHandlerBase() :
   g_permon->addTimer("point_optimizer");
   g_permon->addTimer("local_ba");
   g_permon->addTimer("tot_time");
+
+  g_permon->addTimer("semi_dense_align");
+
   g_permon->addLog("timestamp");
   g_permon->addLog("img_align_n_tracked");
-  g_permon->addLog("dense_align_n_tracked");
   g_permon->addLog("debug_value");  // for debug
   g_permon->addLog("repr_n_mps");
   g_permon->addLog("repr_n_new_references");
@@ -73,6 +74,9 @@ FrameHandlerBase::FrameHandlerBase() :
   g_permon->addLog("loba_err_fin");
   g_permon->addLog("n_candidates");
   g_permon->addLog("dropout");
+
+  g_permon->addLog("dense_align_n_tracked");
+
   g_permon->init(Config::traceName(), Config::traceDir());
 #endif
 

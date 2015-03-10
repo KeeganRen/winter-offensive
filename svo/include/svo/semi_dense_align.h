@@ -49,7 +49,7 @@ public:
 
       Options():
           weighted(true),
-          robust(false),
+          robust(true),
           intensity_err_squared(16),
           dep_var_scale(10000.0)
       {}
