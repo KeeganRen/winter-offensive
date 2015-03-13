@@ -43,6 +43,9 @@ public:
   /// Get the last frame that has been processed.
   FramePtr lastFrame() { return last_frame_; }
 
+  /// Get the frame which maintain depth map
+  FramePtr activeFrame(); 
+
   /// Get the set of spatially closest keyframes of the last frame.
   const set<FramePtr>& coreKeyframes() { return core_kfs_; }
 

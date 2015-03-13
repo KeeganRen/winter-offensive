@@ -17,13 +17,20 @@ namespace svo {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW
             typedef boost::unique_lock<boost::mutex> lock_t;
+
+            typedef struct {
+                FramePtr frame;
+                double depth_mean;
+                double depth_min;
+            } FrameCandidate;
+
             struct Options
             {
                 int maintain_edges; // number of edge point to maintian
                 double max_depth_var_for_tracking;  //maximal depth variance that can be incoperated in tracking
                 bool verbose;
                 Options():
-                    maintain_edges(800),
+                    maintain_edges(1500),
                     max_depth_var_for_tracking(150.0),
                     verbose(false)
                 {}
@@ -35,10 +42,11 @@ namespace svo {
 
             void startThread();
             void stopThread();
-            void addFrame(FramePtr frame);
-            void addKeyframe(FramePtr frame, double depth_mean, double depth_min);
-            void removeKeyframe(FramePtr frame);
+            void pauseUpdate();
+            void resumeUpdate();
+            void addFrame(FramePtr frame, double depth_mean, double depth_min);
             void reset();
+
             FramePtr getActiveKeyframe()
             {
                 return active_keyframe_;
@@ -49,10 +57,9 @@ namespace svo {
             feature_detection::DetectorPtr edge_detector_;  
             boost::thread* thread_;
             bool depth_map_updating_halt_;
-            std::queue<FramePtr> frame_queue_;
+
+            std::queue<FrameCandidate> frame_queue_;
             boost::mutex frame_queue_mut_;
-            std::list<FramePtr> keyframe_neighbour_;
-            boost::mutex keyframe_neighbour_mut_;
             boost::condition_variable frame_queue_cond_;
             Matcher matcher_;
 
@@ -66,10 +73,12 @@ namespace svo {
             // initialize the depth map of the input frame
             // if has active keyframe, propagate the depth map
             // else perform random init
-            void initializeDepthMap(FramePtr frame);
+            void initializeDepthMap(FramePtr frame, double depth_mean, double depth_min);
 
             // refine current depth map by stereo matching between the active keyframe and the new one
             void updateMap(FramePtr frame);
+
+            void getFrameDepth(FramePtr frame, double& depth_mean, double& depth_min);
 
             void clearFrameQueue();
 

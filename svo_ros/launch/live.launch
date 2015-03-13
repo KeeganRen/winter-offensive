@@ -7,6 +7,8 @@
 
         <param name="publish_markers" value="true" type="bool"/>
         
+        <param name="edge_inverse_depth_var_accept" value="0.02" type="double"/>
+
         <!-- Camera calibration file -->
         <rosparam file="$(find svo_ros)/param/120_atan_8.yaml" />
         

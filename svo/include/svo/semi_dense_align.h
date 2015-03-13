@@ -33,9 +33,6 @@ struct Seed;
 /// Optimize the pose of the frame by minimizing the photometric error of feature patches.
 class SemiDenseAlign : public vk::NLLSSolver<6, SE3>
 {
-  static const int patch_halfsize_ = 1;
-  static const int patch_size_ = 2*patch_halfsize_;
-  static const int patch_area_ = patch_size_*patch_size_;
 public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
@@ -48,9 +45,9 @@ public:
       double dep_var_scale;
 
       Options():
-          weighted(true),
-          robust(true),
-          intensity_err_squared(16),
+          weighted(false),
+          robust(false),
+          intensity_err_squared(0),
           dep_var_scale(10000.0)
       {}
   }options_;
@@ -93,6 +90,8 @@ protected:
   virtual void update (const ModelType& old_model, ModelType& new_model);
   virtual void startIteration();
   virtual void finishIteration();
+
+//    ofstream log_file;
 };
 
 } // namespace svo

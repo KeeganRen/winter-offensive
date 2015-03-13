@@ -88,14 +88,14 @@ void warpAffine(
 
   // Perform the warp on a larger patch.
   uint8_t* patch_ptr = patch;
-  const Vector2f px_ref_pyr = px_ref.cast<float>() / (1<<level_ref);    // YS: scaled to raw image
+  const Vector2f px_ref_pyr = px_ref.cast<float>() / (1<<level_ref);    // YS: scaled to pyr level
   for (int y=0; y<patch_size; ++y)
   {
     for (int x=0; x<patch_size; ++x, ++patch_ptr)
     {
       Vector2f px_patch(x-halfpatch_size, y-halfpatch_size);
       px_patch *= (1<<search_level);    // YS: scaled to raw image
-      const Vector2f px(A_ref_cur*px_patch + px_ref_pyr);
+      const Vector2f px(A_ref_cur*px_patch + px_ref_pyr);   // YS: A_ref_cur handles the scale to target level!
       if (px[0]<0 || px[1]<0 || px[0]>=img_ref.cols-1 || px[1]>=img_ref.rows-1)
         *patch_ptr = 0;
       else

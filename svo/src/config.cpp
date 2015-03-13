@@ -53,7 +53,7 @@ Config::Config() :
     quality_min_fts(vk::getParam<int>("svo/quality_min_fts", 50)),
     quality_max_drop_fts(vk::getParam<int>("svo/quality_max_drop_fts", 100)),
     min_baseline_to_depth_ratio(vk::getParam<double>("svo/min_baseline_to_depth_ratio", 0.08)),
-        min_depth_map_quality(vk::getParam<int>("svo/min_depth_map_quality", 300)),
+    min_depth_map_quality(vk::getParam<int>("svo/min_depth_map_quality", 300)),
     edge_inverse_depth_var_accept(vk::getParam<double>("svo/edge_inverse_depth_var_accept", 0.005))
 #else
     trace_name("svo"),

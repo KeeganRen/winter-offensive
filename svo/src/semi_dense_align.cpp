@@ -27,19 +27,19 @@
 
 namespace svo {
 
-    SemiDenseAlign::SemiDenseAlign(
-            int max_level, int min_level, int n_iter,
-            Method method, bool display, bool verbose) :
-        display_(display),
-        max_level_(max_level),
-        min_level_(min_level)
-    {
+   SemiDenseAlign::SemiDenseAlign(
+           int max_level, int min_level, int n_iter,
+           Method method, bool display, bool verbose) :
+       display_(display),
+       max_level_(max_level),
+       min_level_(min_level)
+   {
         n_iter_ = n_iter;
         n_iter_init_ = n_iter_;
         method_ = method;
         verbose_ = verbose;
         eps_ = 0.000001;
-        weight_function_.reset(new vk::robust_cost::HuberWeightFunction());
+        weight_function_.reset(new vk::robust_cost::HuberWeightFunction(0.02));
     }
 
     size_t SemiDenseAlign::run(FramePtr ref_frame, FramePtr cur_frame)
@@ -55,13 +55,17 @@ namespace svo {
             return 0;
         }
 
-        ref_patch_cache_ = cv::Mat(ref_frame_->depth_map_.size(), patch_area_, CV_32F);   
-        jacobian_cache_.resize(Eigen::NoChange, ref_patch_cache_.rows*patch_area_); // YS: a stacked J, fairly large
+        ref_patch_cache_ = cv::Mat(ref_frame_->depth_map_.size(), 1, CV_32F);   
+        jacobian_cache_.resize(Eigen::NoChange, ref_patch_cache_.rows); // YS: a stacked J, fairly large
         visible_fts_.resize(ref_patch_cache_.rows, false); // TODO: should it be reset at each level?
         weight_cache_.resize(ref_patch_cache_.rows, 1.0);
 
         SE3 T_cur_from_ref(cur_frame_->T_f_w_ * ref_frame_->T_f_w_.inverse());    // YS: identity matrix
 
+//        static int file_num=0;
+//        stringstream ss;
+//        ss << "/tmp/res" << file_num++ <<".txt";
+//        log_file.open(ss.str());
         for(level_=max_level_; level_>=min_level_; --level_)
         {
             mu_ = 0.1;
@@ -71,9 +75,10 @@ namespace svo {
                 printf("\nPYRAMID LEVEL %i\n---------------\n", level_);
             optimize(T_cur_from_ref);
         }
+//        log_file.close();
         cur_frame_->T_f_w_ = T_cur_from_ref * ref_frame_->T_f_w_;
 
-        return n_meas_/patch_area_;
+        return n_meas_;
     }
 
     Matrix<double, 6, 6> SemiDenseAlign::getFisherInformation()
@@ -86,7 +91,6 @@ namespace svo {
     void SemiDenseAlign::precomputeReferencePatches()
     {
         size_t visi_num=0;
-        const int border = patch_halfsize_+1;
         const cv::Mat& ref_img = ref_frame_->img_pyr_.at(level_); // YS: ref_img is not ref_frame
         const int stride = ref_img.cols;
         const float scale = 1.0f/(1<<level_);
@@ -106,8 +110,10 @@ namespace svo {
             const float v_ref = it->second->ftr->px[1]*scale; // YS: u_ref v_ref is the coordinates of pixel in the ref_img at pyramid level_
             const int u_ref_i = floorf(u_ref);
             const int v_ref_i = floorf(v_ref);
-            if(!it->second->converged || u_ref_i-border < 0 || v_ref_i-border < 0 || u_ref_i+border >= ref_img.cols || v_ref_i+border >= ref_img.rows)
+//            if(!it->second->converged || u_ref_i-1 < 0 || v_ref_i-1 < 0 || u_ref_i+1 >= ref_img.cols || v_ref_i+1 >= ref_img.rows)
+            if(u_ref_i-1 < 0 || v_ref_i-1 < 0 || u_ref_i+1 >= ref_img.cols || v_ref_i+1 >= ref_img.rows)
                 continue;
+
             *visiblity_it = true;
             visi_num ++;
 
@@ -127,41 +133,41 @@ namespace svo {
             const float w_ref_tr = subpix_u_ref * (1.0-subpix_v_ref);
             const float w_ref_bl = (1.0-subpix_u_ref) * subpix_v_ref;
             const float w_ref_br = subpix_u_ref * subpix_v_ref;
-            size_t pixel_counter = 0;
-            float* cache_ptr = reinterpret_cast<float*>(ref_patch_cache_.data) + patch_area_*feature_counter;
-            for(int y=0; y<patch_size_; ++y)
+
+            float* cache_ptr = reinterpret_cast<float*>(ref_patch_cache_.data) + feature_counter;
+
+            uint8_t* ref_img_ptr = (uint8_t*) ref_img.data + v_ref_i*stride + u_ref_i;
+            *cache_ptr = w_ref_tl*ref_img_ptr[0] 
+                        + w_ref_tr*ref_img_ptr[1] 
+                        + w_ref_bl*ref_img_ptr[stride] 
+                        + w_ref_br*ref_img_ptr[stride+1];
+            float dx = 0.5f * (
+                         (w_ref_tl*ref_img_ptr[1] + w_ref_tr*ref_img_ptr[2] 
+                        + w_ref_bl*ref_img_ptr[stride+1] + w_ref_br*ref_img_ptr[stride+2])
+                        -(w_ref_tl*ref_img_ptr[-1] + w_ref_tr*ref_img_ptr[0] 
+                        + w_ref_bl*ref_img_ptr[stride-1] + w_ref_br*ref_img_ptr[stride])
+                        );
+            float dy = 0.5f * (
+                        (w_ref_tl*ref_img_ptr[stride] + w_ref_tr*ref_img_ptr[1+stride] 
+                         + w_ref_bl*ref_img_ptr[stride*2] + w_ref_br*ref_img_ptr[stride*2+1])
+                        -(w_ref_tl*ref_img_ptr[-stride] + w_ref_tr*ref_img_ptr[1-stride] 
+                        + w_ref_bl*ref_img_ptr[0] + w_ref_br*ref_img_ptr[1])
+                        );
+            // cache the jacobian
+            jacobian_cache_.col(feature_counter) =
+                (dx*frame_jac.row(0) + dy*frame_jac.row(1))*(focal_length / (1<<level_));   // YS: frame_jac are computed under the assumptiom that focal length is 1.0, thus we multiply it by focal_length/(1<<level)
+            // compute weight
+            if(options_.weighted)
             {
-                uint8_t* ref_img_ptr = (uint8_t*) ref_img.data + (v_ref_i+y-patch_halfsize_)*stride + (u_ref_i-patch_halfsize_);
-                for(int x=0; x<patch_size_; ++x, ++ref_img_ptr, ++cache_ptr, ++pixel_counter)
-                {
-                    // precompute interpolated reference patch color
-                    *cache_ptr = w_ref_tl*ref_img_ptr[0] + w_ref_tr*ref_img_ptr[1] + w_ref_bl*ref_img_ptr[stride] + w_ref_br*ref_img_ptr[stride+1];
-
-                    // we use the inverse compositional: thereby we can take the gradient always at the same position
-                    // get gradient of warped image (~gradient at warped position)
-                    float dx = 0.5f * ((w_ref_tl*ref_img_ptr[1] + w_ref_tr*ref_img_ptr[2] + w_ref_bl*ref_img_ptr[stride+1] + w_ref_br*ref_img_ptr[stride+2])
-                            -(w_ref_tl*ref_img_ptr[-1] + w_ref_tr*ref_img_ptr[0] + w_ref_bl*ref_img_ptr[stride-1] + w_ref_br*ref_img_ptr[stride]));
-                    float dy = 0.5f * ((w_ref_tl*ref_img_ptr[stride] + w_ref_tr*ref_img_ptr[1+stride] + w_ref_bl*ref_img_ptr[stride*2] + w_ref_br*ref_img_ptr[stride*2+1])
-                            -(w_ref_tl*ref_img_ptr[-stride] + w_ref_tr*ref_img_ptr[1-stride] + w_ref_bl*ref_img_ptr[0] + w_ref_br*ref_img_ptr[1]));
-
-                    // cache the jacobian
-                    jacobian_cache_.col(feature_counter*patch_area_ + pixel_counter) =
-                        (dx*frame_jac.row(0) + dy*frame_jac.row(1))*(focal_length / (1<<level_));   // YS: frame_jac are computed under the assumptiom that focal length is 1.0, thus we multiply it by focal_length/(1<<level)
-                    // compute weight
-                    if(options_.weighted)
-                        if(y== patch_halfsize_ && x==patch_halfsize_)
-                        {
-                            Matrix<double, 2, 3> uv_wrt_p_jac;
-                            Point::jacobian_xyz2uv(xyz_ref, ref_frame_->T_f_w_.rotation_matrix(), uv_wrt_p_jac);
-                            Vector2d uv_wrt_d = uv_wrt_p_jac.col(2);
-                            double resi_wrt_d = (dx*uv_wrt_d[0] + dy*uv_wrt_d[1])*(focal_length/(1<<level_));
-                            *weight_it = 1.0/(options_.intensity_err_squared 
-                                    + options_.dep_var_scale * resi_wrt_d * resi_wrt_d * depth * depth * it->second->sigma2);
-                        }
-                }
+                Matrix<double, 2, 3> uv_wrt_p_jac;
+                Point::jacobian_xyz2uv(xyz_ref, ref_frame_->T_f_w_.rotation_matrix(), uv_wrt_p_jac);
+                Vector2d uv_wrt_d = uv_wrt_p_jac.col(2);
+                double resi_wrt_d = (dx*uv_wrt_d[0] + dy*uv_wrt_d[1])*(focal_length/(1<<level_));
+                *weight_it = 1.0/(options_.intensity_err_squared 
+                        + options_.dep_var_scale * resi_wrt_d * resi_wrt_d * depth * depth * it->second->sigma2);
             }
         }
-        if (visi_num < 80)
+        if (visi_num < 200)
             SVO_WARN_STREAM("depth map untrackable! "<<visi_num);
         have_ref_patch_cache_ = true; // YS: compute only once
     }
@@ -181,7 +187,6 @@ namespace svo {
             precomputeReferencePatches();
 
         const int stride = cur_img.cols;
-        const int border = patch_halfsize_+1;
         const float scale = 1.0f/(1<<level_);
         const Vector3d ref_pos(ref_frame_->pos());
         float chi2 = 0.0;
@@ -207,7 +212,7 @@ namespace svo {
             const int v_cur_i = floorf(v_cur);
 
             // check if projection is within the image
-            if(u_cur_i < 0 || v_cur_i < 0 || u_cur_i-border < 0 || v_cur_i-border < 0 || u_cur_i+border >= cur_img.cols || v_cur_i+border >= cur_img.rows)
+            if(u_cur_i-1 < 0 || v_cur_i-1 < 0 || u_cur_i+1>= cur_img.cols || v_cur_i+1>= cur_img.rows)
                 continue;
 
             // compute bilateral interpolation weights for the current image
@@ -218,47 +223,47 @@ namespace svo {
             const float w_cur_tr = subpix_u_cur * (1.0-subpix_v_cur);
             const float w_cur_bl = (1.0-subpix_u_cur) * subpix_v_cur;
             const float w_cur_br = subpix_u_cur * subpix_v_cur;
-            float* ref_patch_cache_ptr = reinterpret_cast<float*>(ref_patch_cache_.data) + patch_area_*feature_counter;
-            size_t pixel_counter = 0; // is used to compute the index of the cached jacobian
+
+            float* ref_patch_cache_ptr = reinterpret_cast<float*>(ref_patch_cache_.data) + feature_counter;
             
-            for(int y=0; y<patch_size_; ++y)
+            uint8_t* cur_img_ptr = (uint8_t*) cur_img.data + v_cur_i*stride + u_cur_i;
+            const float intensity_cur = w_cur_tl*cur_img_ptr[0] 
+                                        + w_cur_tr*cur_img_ptr[1] 
+                                        + w_cur_bl*cur_img_ptr[stride] 
+                                        + w_cur_br*cur_img_ptr[stride+1];
+
+            const float res = intensity_cur - (*ref_patch_cache_ptr);
+
+            // robustification
+            float final_weight = 1.0;
+            float huber_weight = 1.0;
+
+            if (options_.robust)
+                huber_weight = weight_function_->value(res * sqrt(*weight_it)); 
+
+//            log_file << res * sqrt(*weight_it) << '\n'; 
+
+            final_weight = huber_weight * *weight_it;
+
+            // if options_.weighted is not set, weight_it always has value 1.0
+            chi2 += final_weight * res * res;
+
+            n_meas_++;
+
+            // YS: stacking the Jacobians
+            if(linearize_system)
             {
-                uint8_t* cur_img_ptr = (uint8_t*) cur_img.data + (v_cur_i+y-patch_halfsize_)*stride + (u_cur_i-patch_halfsize_);
-
-                for(int x=0; x<patch_size_; ++x, ++pixel_counter, ++cur_img_ptr, ++ref_patch_cache_ptr)
+                // compute Jacobian, weighted Hessian and weighted "steepest descend images" (times error)
+                const Vector6d J(jacobian_cache_.col(feature_counter));
+                H_.noalias() += J*J.transpose()*final_weight;
+                Jres_.noalias() -= J*res*final_weight;
+                if(display_)
                 {
-                    // compute residual
-                    const float intensity_cur = w_cur_tl*cur_img_ptr[0] + w_cur_tr*cur_img_ptr[1] + w_cur_bl*cur_img_ptr[stride] + w_cur_br*cur_img_ptr[stride+1];
-                    const float res = intensity_cur - (*ref_patch_cache_ptr);
-
-                    // robustification
-                    float final_weight = 1.0;
-                    float huber_weight = 1.0;
-
-                    if (options_.robust)
-                        huber_weight = weight_function_->value(res * sqrt(*weight_it)); 
-
-                    final_weight = huber_weight * *weight_it;
-
-                    // if options_.weighted is not set, weight_it always has value 1.0
-                    chi2 += final_weight * res * res;
-
-                    n_meas_++;
-
-                    // YS: stacking the Jacobians
-                    if(linearize_system)
-                    {
-                        // compute Jacobian, weighted Hessian and weighted "steepest descend images" (times error)
-                        const Vector6d J(jacobian_cache_.col(feature_counter*patch_area_ + pixel_counter));
-                        H_.noalias() += J*J.transpose()*final_weight;
-                        Jres_.noalias() -= J*res*final_weight;
-                        if(display_)
-                            resimg_.at<float>((int) v_cur+y-patch_halfsize_, (int) u_cur+x-patch_halfsize_) = res/255.0;
-                    }
+                    resimg_.at<float>((int) v_cur, (int) u_cur) = res/255.0;
                 }
             }
         }
-
+//        SVO_INFO_STREAM("average photometric error: "<<chi2/n_meas_);
         return chi2/n_meas_;
     }
 
@@ -284,9 +289,9 @@ namespace svo {
     {
         if(display_)
         {
-            cv::namedWindow("residuals", CV_WINDOW_AUTOSIZE);
+            cv::namedWindow("residuals", CV_WINDOW_NORMAL);
             cv::imshow("residuals", resimg_*10);
-            cv::waitKey(0);
+            cv::waitKey(10);
         }
     }
 

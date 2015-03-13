@@ -78,6 +78,9 @@ public:
       const set<FramePtr>& core_kfs,
       const Map& map);
 
+    void visualizeDenseCloud(
+        FramePtr frame);
+
   void publishMapRegion(set<FramePtr> frames);
 
   void removeDeletedPts(const Map& map);

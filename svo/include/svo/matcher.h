@@ -58,6 +58,16 @@ namespace svo {
                 const int halfpatch_size,
                 uint8_t* patch);
 
+//        void warpAlongEpi(
+//                const Matrix2d& A_cur_ref,
+//                const cv::Mat& img_ref,
+//                const Vector2d& px_ref,
+//                const int level_ref,
+//                const int level_cur,
+//                const int length,
+//                const Vector2d& dir,
+//                uint8_t* patch);
+
     } // namespace warp
 
     /// Patch-matcher for reprojection-matching and epipolar search in triangulation.

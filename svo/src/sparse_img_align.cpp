@@ -158,7 +158,9 @@ namespace svo {
             resimg_ = cv::Mat(cur_img.size(), CV_32F, cv::Scalar(0));
 
         if(have_ref_patch_cache_ == false)
+        {
             precomputeReferencePatches();
+        }
 
         // compute the weights on the first iteration
         std::vector<float> errors;

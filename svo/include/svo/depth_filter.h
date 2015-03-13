@@ -144,6 +144,7 @@ namespace svo {
             boost::mutex seeds_mut_;
             bool seeds_updating_halt_;            //!< Set this value to true when seeds updating should be interrupted.
             boost::thread* thread_;
+
             std::queue<FramePtr> frame_queue_;
             boost::mutex frame_queue_mut_;
             boost::condition_variable frame_queue_cond_;
