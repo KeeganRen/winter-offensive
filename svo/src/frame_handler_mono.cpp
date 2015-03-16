@@ -166,6 +166,8 @@ namespace svo {
                     30, SemiDenseAlign::GaussNewton, false, false);
             size_t dense_align_n_tracked = dense_align.run(depth_frame, new_frame_);
             SVO_STOP_TIMER("semi_dense_align");
+            if (dense_align_n_tracked > 0)
+                SVO_INFO_STREAM("dense aligned: "<<dense_align_n_tracked);
             SVO_LOG(dense_align_n_tracked);
         }
         depth_map_manager_->resumeUpdate();

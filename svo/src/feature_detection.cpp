@@ -186,9 +186,9 @@ void EdgeDetector::detect(
         fts.push_back(tmp_fts);
     }
 
-    if (fts.size() > 4500)
+    if (fts.size() > 3000)
         grad_thresh_ *= 1.05;
-    else if(fts.size() < 3200)
+    else if(fts.size() < 2000)
         grad_thresh_ *= 0.95;
 }
 

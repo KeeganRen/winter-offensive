@@ -24,11 +24,14 @@
 #include <vikit/vision.h>
 #include <vikit/math_utils.h>
 
+static int img_cnt=0;
+
 namespace svo {
 
     SparseImgAlign::SparseImgAlign(
             int max_level, int min_level, int n_iter,
             Method method, bool display, bool verbose) :
+        run_cnt(0),
         display_(display),
         max_level_(max_level),
         min_level_(min_level)
@@ -155,7 +158,10 @@ namespace svo {
         const cv::Mat& cur_img = cur_frame_->img_pyr_.at(level_);
 
         if(linearize_system && display_)
-            resimg_ = cv::Mat(cur_img.size(), CV_32F, cv::Scalar(0));
+        {
+            resimg_ = cv::Mat(cur_img.size(), CV_8UC3);
+            cv::cvtColor(cur_img, resimg_, CV_GRAY2RGB);
+        }
 
         if(have_ref_patch_cache_ == false)
         {
@@ -236,7 +242,12 @@ namespace svo {
                         H_.noalias() += J*J.transpose()*weight;
                         Jres_.noalias() -= J*res*weight;
                         if(display_)
-                            resimg_.at<float>((int) v_cur+y-patch_halfsize_, (int) u_cur+x-patch_halfsize_) = res/255.0;
+                        {
+                            resimg_.at<cv::Vec3b>((int) v_cur+y-patch_halfsize_, (int) u_cur+x-patch_halfsize_)[0] = (uint8_t)fmax(255-res, 0);
+//                            resimg_.at<cv::Vec3b>((int) v_cur+y-patch_halfsize_, (int) u_cur+x-patch_halfsize_)[1] = (uint8_t)fmin(res, 255.0);
+                            resimg_.at<cv::Vec3b>((int) v_cur+y-patch_halfsize_, (int) u_cur+x-patch_halfsize_)[1] = 255;
+                            resimg_.at<cv::Vec3b>((int) v_cur+y-patch_halfsize_, (int) u_cur+x-patch_halfsize_)[2] = (uint8_t)fmax(255-res, 0);
+                        }
                     }
                 }
             }
@@ -269,9 +280,29 @@ namespace svo {
     {
         if(display_)
         {
-            cv::namedWindow("residuals", CV_WINDOW_AUTOSIZE);
-            cv::imshow("residuals", resimg_*10);
-            cv::waitKey(0);
+            stringstream ss;
+            ss << "/tmp/image" << img_cnt <<'_'<<run_cnt <<".png";
+            cv::imwrite(ss.str(), resimg_);
+//            stringstream ss;
+//            ofstream log_file;
+//            ss << "/tmp/resi" << img_cnt<<'_'<<run_cnt << ".txt";
+//            log_file.open(ss.str());
+//            cv::Size size = resimg_.size();
+//            for (int i=0; i<size.height; i++)
+//            {
+//                const float* rowdata = (const float*)(resimg_.data + i*resimg_.step);
+//                for (int j=0; j<size.width; j++)
+//                {
+//                    log_file << rowdata[j] <<' ';
+//                }
+//                log_file << '\n';
+//            }
+//            log_file.close();
+            img_cnt ++;
+            run_cnt++;
+//            cv::namedWindow("residuals", CV_WINDOW_AUTOSIZE);
+//            cv::imshow("residuals", resimg_*10);
+//            cv::waitKey(0);
         }
     }
 

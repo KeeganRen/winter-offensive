@@ -368,8 +368,9 @@ namespace svo {
             // update the estimate
             updateSeed(1./z, tau_inverse*tau_inverse, it->second);
 
-            if(sqrt(it->second->sigma2) < Config::edgeInverseDepthVarAccept()*it->second->z_range)
+            if(sqrt(it->second->sigma2) < Config::edgeInverseDepthVarAccept()*it->second->z_range && it->second->converged == false)
             {
+                active_keyframe_->depth_map_quality_ ++;
                 it->second->converged = true;
             }
 

@@ -39,6 +39,7 @@ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
   cv::Mat resimg_;
+  int run_cnt;
 
   SparseImgAlign(
       int n_levels,

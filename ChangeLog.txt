@@ -1,3 +1,9 @@
+2015/03/16 by taogashi
+1. only one depth map maintained.
+2. use small baseline stereo
+3. semi-dense tracking using 4x4 patch
+5. equal weight
+
 2015/01/11 by taogashi
 ---------------------------
 1. frame.cpp line 123
