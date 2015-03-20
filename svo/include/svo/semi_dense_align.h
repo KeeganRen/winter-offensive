@@ -51,7 +51,7 @@ public:
       double dep_var_scale;
 
       Options():
-          weighted(false),
+          weighted(true),
           robust(false),
           intensity_err_squared(0),
           dep_var_scale(10000.0)

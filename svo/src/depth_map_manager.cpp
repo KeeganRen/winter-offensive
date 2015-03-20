@@ -238,7 +238,7 @@ namespace svo {
                         double depth_sum = 0.0;
                         double depth_weight = 0.0;
                         double weight_sum = 0.0;
-                        double sigma_sum = 0.0;
+                        double min_variance = std::numeric_limits<double>::max();
 
 //                        SVO_INFO_STREAM("debug point 1");
                         for (int i=0; i<3; i++)
@@ -252,7 +252,8 @@ namespace svo {
                                 {
                                     depth_weight = 1/v;
                                     depth_sum += depth_weight*d;
-                                    sigma_sum += v;
+                                    if (min_variance > v)
+                                        min_variance = v;
                                     weight_sum += depth_weight;
                                     n_prior ++;
                                 }
@@ -265,7 +266,7 @@ namespace svo {
                             frame->depth_map_.insert(
                                 make_pair(
                                     (*it)->px[0]+(*it)->px[1]*frame->cam_->width(), 
-                                    new Seed(*it, depth_sum/weight_sum, 1/(6*sqrt(sigma_sum/n_prior)))));
+                                    new Seed(*it, depth_sum/weight_sum, 1/(6*sqrt(min_variance)))));
                         }
                         else
                         {

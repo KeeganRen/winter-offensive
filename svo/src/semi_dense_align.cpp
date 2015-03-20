@@ -167,13 +167,12 @@ namespace svo {
             // compute weight
             if(options_.weighted)
             {
-//                Matrix<double, 2, 3> uv_wrt_p_jac;
-//                Point::jacobian_xyz2uv(xyz_ref, ref_frame_->T_f_w_.rotation_matrix(), uv_wrt_p_jac);
-//                Vector2d uv_wrt_d = uv_wrt_p_jac.col(2);
-//                double resi_wrt_d = (dx*uv_wrt_d[0] + dy*uv_wrt_d[1])*(focal_length/(1<<level_));
-////                *weight_it = 1.0/(options_.intensity_err_squared 
-////                        + options_.dep_var_scale * resi_wrt_d * resi_wrt_d * depth * depth * it->second->sigma2);
-                *weight_it = 1.0/(options_.dep_var_scale*it->second->sigma2);
+                Matrix<double, 2, 3> uv_wrt_p_jac;
+                Point::jacobian_xyz2uv(xyz_ref, ref_frame_->T_f_w_.rotation_matrix(), uv_wrt_p_jac);
+                Vector2d uv_wrt_d = uv_wrt_p_jac.col(2);
+                double resi_wrt_d = (it->second->ftr->grad[0]*uv_wrt_d[0] + it->second->ftr->grad[1]*uv_wrt_d[1])*it->second->ftr->grad_mag;
+                *weight_it = 1.0/(resi_wrt_d * resi_wrt_d * depth * depth * it->second->sigma2);
+//                *weight_it = 1.0/(options_.dep_var_scale*it->second->sigma2);
 ////                *weight_it = 1.0/(resi_wrt_d*resi_wrt_d*depth*depth);
             }
         }
@@ -190,9 +189,9 @@ namespace svo {
 
         if(linearize_system && display_)
         {
-            stringstream ss;
-            ss << "/tmp/image"<<img_cnt<<".png";
-            cv::imwrite(ss.str(), cur_img);
+//            stringstream ss;
+//            ss << "/tmp/image"<<img_cnt<<".png";
+//            cv::imwrite(ss.str(), cur_img);
 
             resimg_ = cv::Mat(cur_img.size(), CV_32F, cv::Scalar(0));
             weight_img_ = cv::Mat(cur_img.size(), CV_32F, cv::Scalar(0));
@@ -255,18 +254,16 @@ namespace svo {
                                                 + w_cur_tr*cur_img_ptr[1] 
                                                 + w_cur_bl*cur_img_ptr[stride] 
                                                 + w_cur_br*cur_img_ptr[stride+1];
-                    float res = intensity_cur - (*ref_patch_cache_ptr);
+                    const float res = intensity_cur - (*ref_patch_cache_ptr);
 
                     float final_weight = 1.0;
                     if(options_.weighted)
-                    {
                         final_weight = *weight_it;
-                        res = res*sqrt_weight;
-                    }
-                    if (options_.robust)
-                        final_weight = weight_function_->value(res); 
 
-                    chi2 += res * res;
+                    if (options_.robust)
+                        final_weight = weight_function_->value(res*sqrt_weight); 
+
+                    chi2 += res * res * final_weight;
                     n_meas_++;
 
                     if(linearize_system)
