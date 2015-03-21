@@ -167,12 +167,12 @@ namespace svo {
             // compute weight
             if(options_.weighted)
             {
-                Matrix<double, 2, 3> uv_wrt_p_jac;
-                Point::jacobian_xyz2uv(xyz_ref, ref_frame_->T_f_w_.rotation_matrix(), uv_wrt_p_jac);
-                Vector2d uv_wrt_d = uv_wrt_p_jac.col(2);
-                double resi_wrt_d = (it->second->ftr->grad[0]*uv_wrt_d[0] + it->second->ftr->grad[1]*uv_wrt_d[1])*it->second->ftr->grad_mag;
-                *weight_it = 1.0/(resi_wrt_d * resi_wrt_d * depth * depth * it->second->sigma2);
-//                *weight_it = 1.0/(options_.dep_var_scale*it->second->sigma2);
+//                Matrix<double, 2, 3> uv_wrt_p_jac;
+//                Point::jacobian_xyz2uv(xyz_ref, ref_frame_->T_f_w_.rotation_matrix(), uv_wrt_p_jac);
+//                Vector2d uv_wrt_d = uv_wrt_p_jac.col(2);
+//                double resi_wrt_d = (it->second->ftr->grad[0]*uv_wrt_d[0] + it->second->ftr->grad[1]*uv_wrt_d[1])*it->second->ftr->grad_mag;
+//                *weight_it = 1.0/(resi_wrt_d * resi_wrt_d * depth * depth * it->second->sigma2);
+                *weight_it = 1.0/(options_.dep_var_scale*it->second->sigma2);
 ////                *weight_it = 1.0/(resi_wrt_d*resi_wrt_d*depth*depth);
             }
         }

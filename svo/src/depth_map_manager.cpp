@@ -197,6 +197,9 @@ namespace svo {
                     // this will not happend in normal cycle
                     for (auto it=active_keyframe_->depth_map_.begin(), ite=active_keyframe_->depth_map_.end(); it != ite; ++it)
                     {
+                        if (!it->second->converged)
+                            continue;
+
                         Vector3d new_pt = T_cur_ref * (it->second->ftr->f/it->second->mu);
                         Vector2d new_px(frame->cam_->world2cam(vk::project2d(new_pt)));
                         const int u_cur_i = floorf(new_px[0]+0.5);

@@ -153,15 +153,6 @@ namespace svo {
     {
         // Set initial pose TODO use prior
         new_frame_->T_f_w_ = last_frame_->T_f_w_;
-        // sparse image align
-        SVO_START_TIMER("sparse_img_align");
-        SparseImgAlign img_align(Config::kltMaxLevel(), Config::kltMinLevel(),
-                30, SparseImgAlign::GaussNewton, false, false);
-        size_t img_align_n_tracked = img_align.run(last_frame_, new_frame_);
-        SVO_STOP_TIMER("sparse_img_align");
-        SVO_LOG(img_align_n_tracked);
-        SVO_DEBUG_STREAM("Img Align:\t Tracked = " << img_align_n_tracked);
-
 #ifdef SVO_USE_EDGE
         size_t dense_align_n_tracked = 0; 
         // align with neighbour keyframe
@@ -182,6 +173,14 @@ namespace svo {
         }
         depth_map_manager_->resumeUpdate();
 #endif
+        // sparse image align
+        SVO_START_TIMER("sparse_img_align");
+        SparseImgAlign img_align(Config::kltMaxLevel(), Config::kltMinLevel(),
+                30, SparseImgAlign::GaussNewton, false, false);
+        size_t img_align_n_tracked = img_align.run(last_frame_, new_frame_);
+        SVO_STOP_TIMER("sparse_img_align");
+        SVO_LOG(img_align_n_tracked);
+        SVO_DEBUG_STREAM("Img Align:\t Tracked = " << img_align_n_tracked);
 
         // map reprojection & feature alignment
         SVO_START_TIMER("reproject");

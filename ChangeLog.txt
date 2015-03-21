@@ -1,3 +1,7 @@
+2015/03/21 by taogashi
+1. semi-dense tracking weight only by sigma2
+2. semi-dense tracking takes before sparse alignment
+
 2015/03/16 by taogashi
 1. only one depth map maintained.
 2. use small baseline stereo

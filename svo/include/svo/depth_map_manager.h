@@ -45,6 +45,7 @@ namespace svo {
             void pauseUpdate();
             void resumeUpdate();
             void addFrame(FramePtr frame, double depth_mean, double depth_min);
+            void setActiveFrame(FramePtr frame, double depth_mean, double depth_min);
             void reset();
 
             FramePtr getActiveKeyframe()
