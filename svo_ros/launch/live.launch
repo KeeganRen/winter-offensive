@@ -10,8 +10,8 @@
         <param name="edge_inverse_depth_var_accept" value="0.025" type="double"/>
         <param name="klt_max_level" value="3" type="int"/>
         <param name="klt_min_level" value="1" type="int"/>
-        <param name="min_baseline_to_depth_ratio" value="0.1" type="double"/>
-        <param name="kfselect_mindist" value="0.1" type="double"/>
+        <param name="min_baseline_to_depth_ratio" value="0.08" type="double"/>
+        <param name="kfselect_mindist" value="0.12" type="double"/>
 
         <!-- Camera calibration file -->
         <rosparam file="$(find svo_ros)/param/120_atan_8.yaml" />

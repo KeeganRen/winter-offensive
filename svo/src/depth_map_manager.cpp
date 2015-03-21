@@ -82,6 +82,23 @@ namespace svo {
         }
     }
 
+    void DepthMapManager::setActiveFrame(FramePtr frame, double depth_mean, double depth_min)
+    {
+        if (frame == active_keyframe_)
+        {
+            SVO_INFO_STREAM("same keyframe, ignored.");
+            return;
+        }
+        new_keyframe_min_depth_ = depth_min;
+        new_keyframe_mean_depth_ = depth_mean;
+        if(thread_ != NULL)
+        {
+            new_keyframe_ = frame;
+            new_keyframe_set_ = true;
+            frame_queue_cond_.notify_one();
+        }
+    }
+
     void DepthMapManager::updateDMapLoop()
     {
         while (!boost::this_thread::interruption_requested())
@@ -89,13 +106,22 @@ namespace svo {
             FrameCandidate frame_candi;
             {
                 lock_t lock(frame_queue_mut_);
-                while (frame_queue_.empty() || depth_map_updating_halt_)
+                while ((frame_queue_.empty() && new_keyframe_set_==false) || depth_map_updating_halt_)  
                     frame_queue_cond_.wait(lock);
-                frame_candi = frame_queue_.front();
-                frame_queue_.pop();
+                if(new_keyframe_set_)
+                {
+                    new_keyframe_set_ = false;
+                    clearFrameQueue();
+                    initializeDepthMap(new_keyframe_, new_keyframe_mean_depth_, new_keyframe_min_depth_);
+                    continue;
+                }
+                else
+                {
+                    frame_candi = frame_queue_.front();
+                    frame_queue_.pop();
+                }
             }
             updateMap(frame_candi.frame);
-            initializeDepthMap(frame_candi.frame, frame_candi.depth_mean, frame_candi.depth_min);
         }
     }
 
@@ -107,6 +133,7 @@ namespace svo {
     void DepthMapManager::resumeUpdate()
     {
         depth_map_updating_halt_ = false;
+        frame_queue_cond_.notify_one();
     }
 
     void DepthMapManager::reset()
@@ -134,6 +161,8 @@ namespace svo {
         }
         if (!active_keyframe_)  // not started
         {   
+            if (options_.verbose)
+                SVO_INFO_STREAM("first depth map init");
             //extract pixels with salient gradient
             Features new_features;
 #ifdef SVO_TRACE
@@ -166,129 +195,130 @@ namespace svo {
         }
         else
         {
-            double baseline_width = (active_keyframe_->T_f_w_.translation() - frame->T_f_w_.translation()).norm();
-            if (baseline_width/depth_mean > Config::minBaselineToDepthRatio()) 
+            if (!frame->depth_map_.empty())
             {
-                //extract pixels with salient gradient
-                Features new_features;
-#ifdef SVO_TRACE
-                permon_.startTimer("edge_detection");
-#endif
-                edge_detector_->detect(frame.get(), frame->img_pyr_,
-                        0.0, new_features);
-                frame->edge_extracted_ = true;
-#ifdef SVO_TRACE
-                permon_.stopTimer("edge_detection");
-                permon_.log("initialized_n_edge", new_features.size());
-#endif
                 if (options_.verbose)
-                    SVO_INFO_STREAM("baseline to depth ratio: "<<baseline_width/depth_mean);
-                // prepare to propagate
-                depth_map_updating_halt_ = true;
-                cv::Mat temp_depth_map=cv::Mat(480, 640, CV_64F, double(0));
-                cv::Mat temp_variance_map=cv::Mat(480, 640, CV_64F, double(0));
+                    SVO_INFO_STREAM("previous map found.");
+                active_keyframe_ = frame;
+                return;
+            }
+            //extract pixels with salient gradient
+            Features new_features;
+#ifdef SVO_TRACE
+            permon_.startTimer("edge_detection");
+#endif
+            edge_detector_->detect(frame.get(), frame->img_pyr_,
+                    0.0, new_features);
+            frame->edge_extracted_ = true;
+#ifdef SVO_TRACE
+            permon_.stopTimer("edge_detection");
+            permon_.log("initialized_n_edge", new_features.size());
+#endif
+            // prepare to propagate
+            depth_map_updating_halt_ = true;
+            cv::Mat temp_depth_map=cv::Mat(480, 640, CV_64F, double(0));
+            cv::Mat temp_variance_map=cv::Mat(480, 640, CV_64F, double(0));
 
-                SE3 T_cur_ref = frame->T_f_w_ * active_keyframe_->T_f_w_.inverse();
+            SE3 T_cur_ref = frame->T_f_w_ * active_keyframe_->T_f_w_.inverse();
 
+            {
+                lock_t lock_(active_keyframe_->depth_map_mut_);
+                // new keyframe without prior info
+                // in case adding the first keyframe
+                // this will not happend in normal cycle
+                for (auto it=active_keyframe_->depth_map_.begin(), ite=active_keyframe_->depth_map_.end(); it != ite; ++it)
                 {
-                    lock_t lock_(active_keyframe_->depth_map_mut_);
-                    // new keyframe without prior info
-                    // in case adding the first keyframe
-                    // this will not happend in normal cycle
-                    for (auto it=active_keyframe_->depth_map_.begin(), ite=active_keyframe_->depth_map_.end(); it != ite; ++it)
+                    if (!it->second->converged)
+                        continue;
+
+                    Vector3d new_pt = T_cur_ref * (it->second->ftr->f/it->second->mu);
+                    Vector2d new_px(frame->cam_->world2cam(vk::project2d(new_pt)));
+                    const int u_cur_i = floorf(new_px[0]+0.5);
+                    const int v_cur_i = floorf(new_px[1]+0.5);
+
+                    // ignore those out of bound
+                    if (u_cur_i-1<0 || v_cur_i-1<0 || u_cur_i+1>=active_keyframe_->cam_->width() || v_cur_i+1>=active_keyframe_->cam_->height())
                     {
-                        if (!it->second->converged)
-                            continue;
-
-                        Vector3d new_pt = T_cur_ref * (it->second->ftr->f/it->second->mu);
-                        Vector2d new_px(frame->cam_->world2cam(vk::project2d(new_pt)));
-                        const int u_cur_i = floorf(new_px[0]+0.5);
-                        const int v_cur_i = floorf(new_px[1]+0.5);
-
-                        // ignore those out of bound
-                        if (u_cur_i-1<0 || v_cur_i-1<0 || u_cur_i+1>=active_keyframe_->cam_->width() || v_cur_i+1>=active_keyframe_->cam_->height())
-                        {
-                            continue;
-                        }
-
-                        // variance propagate
-                        double d1_d0 = 1.0/(new_pt[2] * it->second->mu);
-                        double d1_d0_2 = d1_d0*d1_d0;
-                        double d1_d0_4 = d1_d0_2 * d1_d0_2;
-                        double new_sigma2 = d1_d0_4 * it->second->sigma2 + 0.008;
-                        temp_depth_map.at<double>(v_cur_i, u_cur_i) = new_pt[2];
-                        temp_variance_map.at<double>(v_cur_i, u_cur_i) = new_sigma2;
+                        continue;
                     }
-                }
-                if (options_.verbose)
-                {
-                    SVO_INFO_STREAM("propagated to Mat.");
-                    SVO_INFO_STREAM("new features number: "<<new_features.size());
-                }
-                {
-                    int prior_num=0;
-                    lock_t lock(frame->depth_map_mut_);
-                    for (auto it=new_features.begin(), ite=new_features.end(); it != ite; )
-                    {
-                        if ((*it)->px[0]-1<0 || (*it)->px[1]-1<0 || (*it)->px[0]+1>=frame->cam_->width() || (*it)->px[1]+1>=frame->cam_->height())
-                        {
-                            delete *it;
-                            it = new_features.erase(it);
-                            continue;
-                        }
 
-                        int n_prior = 0;
-                        double depth_sum = 0.0;
-                        double depth_weight = 0.0;
-                        double weight_sum = 0.0;
-                        double min_variance = std::numeric_limits<double>::max();
+                    // variance propagate
+                    double d1_d0 = 1.0/(new_pt[2] * it->second->mu);
+                    double d1_d0_2 = d1_d0*d1_d0;
+                    double d1_d0_4 = d1_d0_2 * d1_d0_2;
+                    double new_sigma2 = d1_d0_4 * it->second->sigma2 + 0.008;
+                    temp_depth_map.at<double>(v_cur_i, u_cur_i) = new_pt[2];
+                    temp_variance_map.at<double>(v_cur_i, u_cur_i) = new_sigma2;
+                }
+            }
+            if (options_.verbose)
+            {
+                SVO_INFO_STREAM("propagated to Mat.");
+                SVO_INFO_STREAM("new features number: "<<new_features.size());
+            }
+            {
+                int prior_num=0;
+                lock_t lock(frame->depth_map_mut_);
+                for (auto it=new_features.begin(), ite=new_features.end(); it != ite; )
+                {
+                    if ((*it)->px[0]-1<0 || (*it)->px[1]-1<0 || (*it)->px[0]+1>=frame->cam_->width() || (*it)->px[1]+1>=frame->cam_->height())
+                    {
+                        delete *it;
+                        it = new_features.erase(it);
+                        continue;
+                    }
+
+                    int n_prior = 0;
+                    double depth_sum = 0.0;
+                    double depth_weight = 0.0;
+                    double weight_sum = 0.0;
+                    double min_variance = std::numeric_limits<double>::max();
 
 //                        SVO_INFO_STREAM("debug point 1");
-                        for (int i=0; i<3; i++)
-                            for (int j=0; j<3; j++)
-                            {
+                    for (int i=0; i<3; i++)
+                        for (int j=0; j<3; j++)
+                        {
 //                                SVO_INFO_STREAM((*it)->px[1]-1+i<<' '<<(*it)->px[0]-1+j);
-                                const double d=temp_depth_map.at<double>((*it)->px[1]-1+i, (*it)->px[0]-1+j);
-                                const double v=temp_variance_map.at<double>((*it)->px[1]-1+i,(*it)->px[0]-1+j);
+                            const double d=temp_depth_map.at<double>((*it)->px[1]-1+i, (*it)->px[0]-1+j);
+                            const double v=temp_variance_map.at<double>((*it)->px[1]-1+i,(*it)->px[0]-1+j);
 
-                                if (d > 0.00001 && v>0.008) // sanity check
-                                {
-                                    depth_weight = 1/v;
-                                    depth_sum += depth_weight*d;
-                                    if (min_variance > v)
-                                        min_variance = v;
-                                    weight_sum += depth_weight;
-                                    n_prior ++;
-                                }
+                            if (d > 0.00001 && v>0.008) // sanity check
+                            {
+                                depth_weight = 1/v;
+                                depth_sum += depth_weight*d;
+                                if (min_variance > v)
+                                    min_variance = v;
+                                weight_sum += depth_weight;
+                                n_prior ++;
                             }
+                        }
 
 //                       SVO_INFO_STREAM("debug point 2");
-                        if (n_prior > 0)
-                        {
-                            prior_num++;
-                            frame->depth_map_.insert(
-                                make_pair(
-                                    (*it)->px[0]+(*it)->px[1]*frame->cam_->width(), 
-                                    new Seed(*it, depth_sum/weight_sum, 1/(6*sqrt(min_variance)))));
-                        }
-                        else
-                        {
-                            frame->depth_map_.insert(
-                                make_pair(
-                                    (*it)->px[0]+(*it)->px[1]*frame->cam_->width(), 
-                                    new Seed(*it, depth_mean, depth_min)));
-                        }
-                         ++it;
+                    if (n_prior > 0)
+                    {
+                        prior_num++;
+                        frame->depth_map_.insert(
+                            make_pair(
+                                (*it)->px[0]+(*it)->px[1]*frame->cam_->width(), 
+                                new Seed(*it, depth_sum/weight_sum, 1/(6*sqrt(min_variance)))));
                     }
-#ifdef SVO_TRACE
-                    permon_.log("prior_num", prior_num);
-#endif
+                    else
+                    {
+                        frame->depth_map_.insert(
+                            make_pair(
+                                (*it)->px[0]+(*it)->px[1]*frame->cam_->width(), 
+                                new Seed(*it, depth_mean, depth_min)));
+                    }
+                     ++it;
                 }
-                depth_map_updating_halt_ = false;
-                active_keyframe_ = frame;
-                if (options_.verbose)
-                    SVO_INFO_STREAM("depth map propagate success.");
+#ifdef SVO_TRACE
+                permon_.log("prior_num", prior_num);
+#endif
             }
+            depth_map_updating_halt_ = false;
+            active_keyframe_ = frame;
+            if (options_.verbose)
+                SVO_INFO_STREAM("depth map propagate success.");
         }
     }
 
@@ -304,6 +334,12 @@ namespace svo {
                 SVO_INFO_STREAM("no proper keyframe.");
             return;
         }
+        
+        double baseline_width = (frame->T_f_w_.translation() - active_keyframe_->T_f_w_.translation()).norm();
+        double act_depth_mean, act_depth_min;
+        getFrameDepth(active_keyframe_, act_depth_mean, act_depth_min);
+        if (baseline_width/act_depth_mean > Config::minBaselineToDepthRatio())
+            return;
 
         lock_t lock(active_keyframe_->depth_map_mut_);  //TODO: guarantee read/write protection
         auto it = active_keyframe_->depth_map_.begin();

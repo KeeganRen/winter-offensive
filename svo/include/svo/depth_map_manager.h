@@ -32,7 +32,7 @@ namespace svo {
                 Options():
                     maintain_edges(1500),
                     max_depth_var_for_tracking(150.0),
-                    verbose(false)
+                    verbose(true)
                 {}
             } options_;
 

@@ -138,7 +138,7 @@ namespace svo {
         frame_utils::getSceneDepth(*new_frame_, depth_mean, depth_min);
         depth_filter_->addKeyframe(new_frame_, depth_mean, 0.5*depth_min);
 #ifdef SVO_USE_EDGE
-        depth_map_manager_->addFrame(new_frame_, depth_mean, 0.5*depth_min);
+        depth_map_manager_->setActiveFrame(new_frame_, depth_mean, 0.5*depth_min);
 #endif
 
         // add frame to map
@@ -173,15 +173,21 @@ namespace svo {
         }
         depth_map_manager_->resumeUpdate();
 #endif
-        // sparse image align
-        SVO_START_TIMER("sparse_img_align");
-        SparseImgAlign img_align(Config::kltMaxLevel(), Config::kltMinLevel(),
-                30, SparseImgAlign::GaussNewton, false, false);
-        size_t img_align_n_tracked = img_align.run(last_frame_, new_frame_);
-        SVO_STOP_TIMER("sparse_img_align");
-        SVO_LOG(img_align_n_tracked);
-        SVO_DEBUG_STREAM("Img Align:\t Tracked = " << img_align_n_tracked);
-
+#ifdef SVO_USE_EDGE
+        if (dense_align_n_tracked < 200)
+        {
+#endif
+            // sparse image align
+            SVO_START_TIMER("sparse_img_align");
+            SparseImgAlign img_align(Config::kltMaxLevel(), Config::kltMinLevel(),
+                    30, SparseImgAlign::GaussNewton, false, false);
+            size_t img_align_n_tracked = img_align.run(last_frame_, new_frame_);
+            SVO_STOP_TIMER("sparse_img_align");
+            SVO_LOG(img_align_n_tracked);
+            SVO_DEBUG_STREAM("Img Align:\t Tracked = " << img_align_n_tracked);
+#ifdef SVO_USE_EDGE
+        }
+#endif
         // map reprojection & feature alignment
         SVO_START_TIMER("reproject");
         reprojector_.reprojectMap(new_frame_, overlap_kfs_);
@@ -268,6 +274,10 @@ namespace svo {
 
         // init new depth-filters
         depth_filter_->addKeyframe(new_frame_, depth_mean, 0.5*depth_min);
+
+#ifdef SVO_USE_EDGE
+        depth_map_manager_->setActiveFrame(overlap_kfs_.front().first, depth_mean, 0.5*depth_min);
+#endif
 
         // if limited number of keyframes, remove the one furthest apart
         if(Config::maxNKfs() > 2 && map_.size() >= Config::maxNKfs())
