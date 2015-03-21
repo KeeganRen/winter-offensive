@@ -35,7 +35,7 @@ Frame::Frame(vk::AbstractCamera* cam, const cv::Mat& img, double timestamp) :
     timestamp_(timestamp),
     cam_(cam),
     depth_map_quality_(0),
-    edge_extracted_(false),
+    align_method_(0),
     key_pts_(5),
     is_keyframe_(false),
     v_kf_(NULL)

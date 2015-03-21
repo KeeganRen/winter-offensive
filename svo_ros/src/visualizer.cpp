@@ -215,9 +215,23 @@ namespace svo {
             vk::output_helper::publishHexacopterMarker(
                     pub_frames_, "cam_pos", "cams", ros::Time(frame->timestamp_),
                     1, 0, 0.3, Vector3d(0.,0.,1.)); // #pub 4
+
+            Vector3d traj_color;
+            switch(frame->align_method_)
+            {
+                case 1:
+                    traj_color<<0,0.5,0;
+                    break;
+                case 2:
+                    traj_color<<0.5,0,0;
+                    break;
+                default:
+                    traj_color<<0,0,0.5;
+                    break;
+            }
             vk::output_helper::publishPointMarker(
                     pub_points_, T_world_from_vision_*frame->pos(), "trajectory",
-                    ros::Time::now(), trace_id_, 0, 0.006, Vector3d(0.,0.,0.5));    // #pub 5
+                    ros::Time::now(), trace_id_, 0, 0.012, traj_color);    // #pub 5
             if(frame->isKeyframe() || publish_map_every_frame_)
                 publishMapRegion(core_kfs);
             removeDeletedPts(map);

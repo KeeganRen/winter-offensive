@@ -170,7 +170,6 @@ namespace svo {
 #endif
             edge_detector_->detect(frame.get(), frame->img_pyr_,
                     0.0, new_features);
-            frame->edge_extracted_ = true;
 #ifdef SVO_TRACE
             permon_.stopTimer("edge_detection");
             permon_.log("initialized_n_edge", new_features.size());
@@ -209,7 +208,6 @@ namespace svo {
 #endif
             edge_detector_->detect(frame.get(), frame->img_pyr_,
                     0.0, new_features);
-            frame->edge_extracted_ = true;
 #ifdef SVO_TRACE
             permon_.stopTimer("edge_detection");
             permon_.log("initialized_n_edge", new_features.size());

@@ -174,8 +174,12 @@ namespace svo {
         depth_map_manager_->resumeUpdate();
 #endif
 #ifdef SVO_USE_EDGE
-        if (dense_align_n_tracked < 200)
+        if (dense_align_n_tracked < 300)
         {
+            if (dense_align_n_tracked == 0)
+                new_frame_->align_method_ = 0;
+            else
+                new_frame_->align_method_ = 1;
 #endif
             // sparse image align
             SVO_START_TIMER("sparse_img_align");
@@ -187,6 +191,8 @@ namespace svo {
             SVO_DEBUG_STREAM("Img Align:\t Tracked = " << img_align_n_tracked);
 #ifdef SVO_USE_EDGE
         }
+        else
+            new_frame_->align_method_ = 2;
 #endif
         // map reprojection & feature alignment
         SVO_START_TIMER("reproject");

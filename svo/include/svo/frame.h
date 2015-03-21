@@ -57,7 +57,7 @@ public:
   DepthMap                      depth_map_;              // YS: store those have large gradient.
   int                           depth_map_quality_;
   boost::mutex                  depth_map_mut_;
-  bool                          edge_extracted_;
+  int                           align_method_;
   vector<Feature*>              key_pts_;               //!< Five features and associated 3D points which are used to detect if two frames have overlapping field of view.
   bool                          is_keyframe_;           //!< Was this frames selected as keyframe?
   g2oFrameSE3*                  v_kf_;                  //!< Temporary pointer to the g2o node object of the keyframe.
