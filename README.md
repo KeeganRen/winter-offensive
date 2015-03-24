@@ -41,3 +41,13 @@ See the Wiki for more instructions. https://github.com/uzh-rpg/rpg_svo/wiki
 
 You are very welcome to contribute to SVO by opening a pull request via Github.
 I try to follow the ROS C++ style guide http://wiki.ros.org/CppStyleGuide
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ precise main restricted universe multiverse
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ precise-security main restricted universe multiverse
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ precise-updates main restricted universe multiverse
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ precise-backports main restricted universe multiverse
+deb http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ precise-proposed main restricted universe multiverse
+deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ precise main restricted universe multiverse
+deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ precise-security main restricted universe multiverse
+deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ precise-updates main restricted universe multiverse
+deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ precise-backports main restricted universe multiverse
+deb-src http://mirrors.tuna.tsinghua.edu.cn/ubuntu/ precise-proposed main restricted universe multiverse
