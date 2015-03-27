@@ -159,8 +159,8 @@ namespace svo {
 
         if(linearize_system && display_)
         {
-            resimg_ = cv::Mat(cur_img.size(), CV_8UC3);
-            cv::cvtColor(cur_img, resimg_, CV_GRAY2RGB);
+            resimg_ = cv::Mat(cur_img.size(), CV_32F, cv::Scalar(255));
+//            cv::cvtColor(cur_img, resimg_, CV_GRAY2RGB);
         }
 
         if(have_ref_patch_cache_ == false)
@@ -243,10 +243,7 @@ namespace svo {
                         Jres_.noalias() -= J*res*weight;
                         if(display_)
                         {
-                            resimg_.at<cv::Vec3b>((int) v_cur+y-patch_halfsize_, (int) u_cur+x-patch_halfsize_)[0] = (uint8_t)fmax(255-res, 0);
-//                            resimg_.at<cv::Vec3b>((int) v_cur+y-patch_halfsize_, (int) u_cur+x-patch_halfsize_)[1] = (uint8_t)fmin(res, 255.0);
-                            resimg_.at<cv::Vec3b>((int) v_cur+y-patch_halfsize_, (int) u_cur+x-patch_halfsize_)[1] = 255;
-                            resimg_.at<cv::Vec3b>((int) v_cur+y-patch_halfsize_, (int) u_cur+x-patch_halfsize_)[2] = (uint8_t)fmax(255-res, 0);
+                            resimg_.at<float>((int) v_cur+y-patch_halfsize_, (int) u_cur+x-patch_halfsize_) = *ref_patch_cache_ptr;
                         }
                     }
                 }

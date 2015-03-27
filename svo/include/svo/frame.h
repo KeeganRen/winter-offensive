@@ -37,7 +37,6 @@ struct Feature;
 struct Seed;
 
 typedef list<Feature*> Features;
-typedef unordered_map<unsigned int, Seed*> DepthMap;
 typedef vector<cv::Mat> ImgPyr;
 
 /// A frame saves the image, the associated features and the estimated pose.
@@ -54,7 +53,7 @@ public:
   Matrix<double, 6, 6>          Cov_;                   //!< Covariance. YS: of %xi ?
   ImgPyr                        img_pyr_;               //!< Image Pyramid.
   Features                      fts_;                   //!< List of features in the image.
-  DepthMap                      depth_map_;              // YS: store those have large gradient.
+  std::list<Seed, aligned_allocator<Seed> > depth_map_; // YS: store those have large gradient.
   int                           depth_map_quality_;
   boost::mutex                  depth_map_mut_;
   int                           align_method_;

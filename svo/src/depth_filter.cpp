@@ -54,7 +54,13 @@ DepthFilter::DepthFilter(feature_detection::DetectorPtr feature_detector, callba
     new_keyframe_set_(false),
     new_keyframe_min_depth_(0.0),
     new_keyframe_mean_depth_(0.0)
-{}
+{
+#ifdef SVO_TRACE
+        permon_.addTimer("seed_update");
+        permon_.addLog("update_n_seed");
+        permon_.init("depth_filter", "/tmp");
+#endif
+}
 
 DepthFilter::~DepthFilter()
 {
@@ -197,6 +203,9 @@ void DepthFilter::updateSeedsLoop()
 
 void DepthFilter::updateSeeds(FramePtr frame)
 {
+#ifdef SVO_TRACE
+    permon_.startTimer("seed_update");
+#endif
   // update only a limited number of seeds, because we don't have time to do it
   // for all the seeds in every frame!
   size_t n_updates=0, n_failed_matches=0, n_seeds = seeds_.size();
@@ -291,6 +300,11 @@ void DepthFilter::updateSeeds(FramePtr frame)
     else
       ++it;
   }
+#ifdef SVO_TRACE
+  permon_.stopTimer("seed_update");
+  permon_.log("update_n_seed", n_updates);
+  permon_.writeToFile();
+#endif
 }
 
 void DepthFilter::clearFrameQueue()

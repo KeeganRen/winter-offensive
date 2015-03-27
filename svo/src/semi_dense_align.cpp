@@ -107,12 +107,12 @@ namespace svo {
         for(auto it=ref_frame_->depth_map_.begin(), ite=ref_frame_->depth_map_.end();
                 it!=ite; ++it, ++feature_counter, ++visiblity_it, ++weight_it)
         {
-            if (!it->second->converged)
+            if (!it->converged)
                 continue;
 
             // check if reference with patch size is within image
-            const float u_ref = it->second->ftr->px[0]*scale; // YS: (*it)->px is Coordinates in pixels on pyramid level 0.
-            const float v_ref = it->second->ftr->px[1]*scale; // YS: u_ref v_ref is the coordinates of pixel in the ref_img at pyramid level_
+            const float u_ref = it->ftr->px[0]*scale; // YS: (*it)->px is Coordinates in pixels on pyramid level 0.
+            const float v_ref = it->ftr->px[1]*scale; // YS: u_ref v_ref is the coordinates of pixel in the ref_img at pyramid level_
             const int u_ref_i = floorf(u_ref);
             const int v_ref_i = floorf(v_ref);
             if(u_ref_i-border < 0 || v_ref_i-border < 0 || u_ref_i+border >= ref_img.cols || v_ref_i+border >= ref_img.rows)
@@ -120,8 +120,8 @@ namespace svo {
             *visiblity_it = true;
 
             // 3D point in ref frame
-            const double depth(1.0/it->second->mu);
-            const Vector3d xyz_ref(it->second->ftr->f*depth);
+            const double depth(1.0/it->mu);
+            const Vector3d xyz_ref(it->ftr->f*depth);
 
             // evaluate projection jacobian
             Matrix<double,2,6> frame_jac;
@@ -172,7 +172,7 @@ namespace svo {
 //                Vector2d uv_wrt_d = uv_wrt_p_jac.col(2);
 //                double resi_wrt_d = (it->second->ftr->grad[0]*uv_wrt_d[0] + it->second->ftr->grad[1]*uv_wrt_d[1])*it->second->ftr->grad_mag;
 //                *weight_it = 1.0/(resi_wrt_d * resi_wrt_d * depth * depth * it->second->sigma2);
-                *weight_it = 1.0/(options_.dep_var_scale*it->second->sigma2);
+                *weight_it = 1.0/(options_.dep_var_scale*it->sigma2);
 ////                *weight_it = 1.0/(resi_wrt_d*resi_wrt_d*depth*depth);
             }
         }
@@ -193,7 +193,7 @@ namespace svo {
 //            ss << "/tmp/image"<<img_cnt<<".png";
 //            cv::imwrite(ss.str(), cur_img);
 
-            resimg_ = cv::Mat(cur_img.size(), CV_32F, cv::Scalar(0));
+            resimg_ = cv::Mat(cur_img.size(), CV_32F, cv::Scalar(255));
             weight_img_ = cv::Mat(cur_img.size(), CV_32F, cv::Scalar(0));
         }
 
@@ -216,8 +216,8 @@ namespace svo {
                 continue;
 
             // compute pixel location in cur img
-            const double depth = 1.0/it->second->mu;
-            const Vector3d xyz_ref(it->second->ftr->f*depth);
+            const double depth = 1.0/it->mu;
+            const Vector3d xyz_ref(it->ftr->f*depth);
             const Vector3d xyz_cur(T_cur_from_ref * xyz_ref); // YS: warp here
             const Vector2f uv_cur_pyr(cur_frame_->cam_->world2cam(xyz_cur).cast<float>() * scale);
             const float u_cur = uv_cur_pyr[0];
@@ -274,7 +274,7 @@ namespace svo {
                         Jres_.noalias() -= J*res*final_weight;
                         if(display_)
                         {
-                            resimg_.at<float>((int) v_cur, (int) u_cur) = res/255.0;
+                            resimg_.at<float>((int) v_cur+y-patch_halfsize_, (int) u_cur+x-patch_halfsize_) = *ref_patch_cache_ptr;
                             weight_img_.at<float>((int) v_cur, (int) u_cur) = *weight_it;
                         }
                     }
@@ -308,35 +308,38 @@ namespace svo {
         if(display_)
         {
             stringstream ss;
-            ofstream log_file;
-            ss << "/tmp/resi"<<img_cnt<<'_'<<run_cnt<<".txt";
-            log_file.open(ss.str());
-            cv::Size size = resimg_.size();
-            for (int i=0; i<size.height; i++)
-            {
-                const float* rowdata = (const float*)(resimg_.data + i*resimg_.step);
-                for (int j=0; j<size.width; j++)
-                {
-                    log_file << rowdata[j] <<' ';
-                }
-                log_file << '\n';
-            }
-            log_file.close();
-
-            ss.str("");
-            ss << "/tmp/weight"<<img_cnt<<".txt";
-            log_file.open(ss.str());
-            size = weight_img_.size();
-            for (int i=0; i<size.height; i++)
-            {
-                const float* rowdata = (const float*)(weight_img_.data + i*weight_img_.step);
-                for (int j=0; j<size.width; j++)
-                {
-                    log_file << rowdata[j] <<' ';
-                }
-                log_file << '\n';
-            }
-            log_file.close();
+            ss << "/tmp/image" << img_cnt <<'_'<<run_cnt <<".png";
+            cv::imwrite(ss.str(), resimg_);
+//            stringstream ss;
+//            ofstream log_file;
+//            ss << "/tmp/resi"<<img_cnt<<'_'<<run_cnt<<".txt";
+//            log_file.open(ss.str());
+//            cv::Size size = resimg_.size();
+//            for (int i=0; i<size.height; i++)
+//            {
+//                const float* rowdata = (const float*)(resimg_.data + i*resimg_.step);
+//                for (int j=0; j<size.width; j++)
+//                {
+//                    log_file << rowdata[j] <<' ';
+//                }
+//                log_file << '\n';
+//            }
+//            log_file.close();
+//
+//            ss.str("");
+//            ss << "/tmp/weight"<<img_cnt<<".txt";
+//            log_file.open(ss.str());
+//            size = weight_img_.size();
+//            for (int i=0; i<size.height; i++)
+//            {
+//                const float* rowdata = (const float*)(weight_img_.data + i*weight_img_.step);
+//                for (int j=0; j<size.width; j++)
+//                {
+//                    log_file << rowdata[j] <<' ';
+//                }
+//                log_file << '\n';
+//            }
+//            log_file.close();
 
             img_cnt++;
             run_cnt++;

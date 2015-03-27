@@ -30,11 +30,8 @@ namespace svo {
         permon_.addLog("initialized_n_edge");
         permon_.addLog("prior_num");
         permon_.addLog("update_n_edge");
-        permon_.addLog("min_sigma2");
-        permon_.addLog("updated_depth_mean");
-        permon_.addLog("initialize_depth_mean");
-        permon_.addLog("prior_depth_mean");
         permon_.addLog("baseline_width");
+        permon_.addLog("act_depth_mean");
         permon_.init("depth_map", "/tmp");
 #endif
     }
@@ -173,6 +170,7 @@ namespace svo {
 #ifdef SVO_TRACE
             permon_.stopTimer("edge_detection");
             permon_.log("initialized_n_edge", new_features.size());
+            permon_.log("prior_num", 0);
 #endif
             depth_map_updating_halt_ = true;
             {
@@ -181,10 +179,7 @@ namespace svo {
                 // in case adding the first keyframe
                 // this will not happend in normal cycle
                 std::for_each(new_features.begin(), new_features.end(), [&](Feature* ftr){
-                        frame->depth_map_.insert(
-                            make_pair(
-                                ftr->px[0]+ftr->px[1]*frame->cam_->width(), 
-                                new Seed(ftr, depth_mean, depth_min)));
+                        frame->depth_map_.push_back(Seed(ftr, depth_mean, depth_min));
                         });
             }
             active_keyframe_ = frame;
@@ -226,10 +221,10 @@ namespace svo {
                 // this will not happend in normal cycle
                 for (auto it=active_keyframe_->depth_map_.begin(), ite=active_keyframe_->depth_map_.end(); it != ite; ++it)
                 {
-                    if (!it->second->converged)
+                    if (!it->converged)
                         continue;
 
-                    Vector3d new_pt = T_cur_ref * (it->second->ftr->f/it->second->mu);
+                    Vector3d new_pt = T_cur_ref * (it->ftr->f/it->mu);
                     Vector2d new_px(frame->cam_->world2cam(vk::project2d(new_pt)));
                     const int u_cur_i = floorf(new_px[0]+0.5);
                     const int v_cur_i = floorf(new_px[1]+0.5);
@@ -241,10 +236,10 @@ namespace svo {
                     }
 
                     // variance propagate
-                    double d1_d0 = 1.0/(new_pt[2] * it->second->mu);
+                    double d1_d0 = 1.0/(new_pt[2] * it->mu);
                     double d1_d0_2 = d1_d0*d1_d0;
                     double d1_d0_4 = d1_d0_2 * d1_d0_2;
-                    double new_sigma2 = d1_d0_4 * it->second->sigma2 + 0.008;
+                    double new_sigma2 = d1_d0_4 * it->sigma2 + 0.008;
                     temp_depth_map.at<double>(v_cur_i, u_cur_i) = new_pt[2];
                     temp_variance_map.at<double>(v_cur_i, u_cur_i) = new_sigma2;
                 }
@@ -295,17 +290,11 @@ namespace svo {
                     if (n_prior > 0)
                     {
                         prior_num++;
-                        frame->depth_map_.insert(
-                            make_pair(
-                                (*it)->px[0]+(*it)->px[1]*frame->cam_->width(), 
-                                new Seed(*it, depth_sum/weight_sum, 1/(6*sqrt(min_variance)))));
+                        frame->depth_map_.push_back(Seed(*it, depth_sum/weight_sum, 1/(6*sqrt(min_variance))));
                     }
                     else
                     {
-                        frame->depth_map_.insert(
-                            make_pair(
-                                (*it)->px[0]+(*it)->px[1]*frame->cam_->width(), 
-                                new Seed(*it, depth_mean, depth_min)));
+                        frame->depth_map_.push_back(Seed(*it, depth_mean, depth_min));
                     }
                      ++it;
                 }
@@ -330,6 +319,11 @@ namespace svo {
         {
             if (options_.verbose)
                 SVO_INFO_STREAM("no proper keyframe.");
+#ifdef SVO_TRACE
+            permon_.stopTimer("depth_map_update");
+            permon_.log("update_n_edge", -3);
+            permon_.writeToFile();
+#endif
             return;
         }
         
@@ -337,7 +331,16 @@ namespace svo {
         double act_depth_mean, act_depth_min;
         getFrameDepth(active_keyframe_, act_depth_mean, act_depth_min);
         if (baseline_width/act_depth_mean > Config::minBaselineToDepthRatio())
+        {
+#ifdef SVO_TRACE
+            permon_.stopTimer("depth_map_update");
+            permon_.log("update_n_edge", -2);
+            permon_.log("baseline_width", baseline_width);
+            permon_.log("act_depth_mean",act_depth_mean);
+            permon_.writeToFile();
+#endif
             return;
+        }
 
         lock_t lock(active_keyframe_->depth_map_mut_);  //TODO: guarantee read/write protection
         auto it = active_keyframe_->depth_map_.begin();
@@ -349,9 +352,16 @@ namespace svo {
         while (it != active_keyframe_->depth_map_.end())
         {
             if (depth_map_updating_halt_)
+            {
+#ifdef SVO_TRACE
+                permon_.stopTimer("depth_map_update");
+                permon_.log("update_n_edge", n_updated);
+                permon_.writeToFile();
+#endif
                 return;
+            }
             SE3 T_ref_cur = active_keyframe_->T_f_w_ * frame->T_f_w_.inverse();
-            const Vector3d xyz_f(T_ref_cur.inverse()*(1.0/it->second->mu * it->second->ftr->f)); // xyz in cur frame
+            const Vector3d xyz_f(T_ref_cur.inverse()*(1.0/it->mu * it->ftr->f)); // xyz in cur frame
             if (xyz_f.z() < 0.0)
             {
                 ++it;   // behind the camera
@@ -363,23 +373,22 @@ namespace svo {
                 continue;
             }
 
-            float z_inv_min = it->second->mu + sqrt(it->second->sigma2);
-            float z_inv_max = max(it->second->mu - sqrt(it->second->sigma2), 0.00000001f);
+            float z_inv_min = it->mu + sqrt(it->sigma2);
+            float z_inv_max = max(it->mu - sqrt(it->sigma2), 0.00000001f);
             double z;
             Vector2d px_found;
 
             if (isnan(z_inv_min))
             {
                 SVO_WARN_STREAM("z_min is NaN");
-                delete it->second->ftr;
-                delete it->second;
+                delete it->ftr;
                 it = active_keyframe_->depth_map_.erase(it);
                 continue;
             }
 
             Matcher::MatchResult mres = matcher_.findEpipolarMatchDirect(*active_keyframe_, *frame
-                    , *it->second->ftr
-                    , 1.0/it->second->mu, 1.0/z_inv_min, 1.0/z_inv_max, px_found, z);
+                    , *it->ftr
+                    , 1.0/it->mu, 1.0/z_inv_min, 1.0/z_inv_max, px_found, z);
 
             if (mres == Matcher::EdgeDirectionViolate)  // we do not penalize those gradient not match
             {
@@ -388,11 +397,10 @@ namespace svo {
             }
             else if (mres != Matcher::Success)
             {
-                it->second->b++;
-                if (it->second->a/(it->second->a+it->second->b) < 0.1) // inlier ratio too low
+                it->b++;
+                if (it->a/(it->a+it->b) < 0.1) // inlier ratio too low
                 {
-                    delete it->second->ftr;
-                    delete it->second;
+                    delete it->ftr;
                     it = active_keyframe_->depth_map_.erase(it);
                 }
                 else
@@ -400,16 +408,16 @@ namespace svo {
                 continue;
             }
 
-            double tau = computeTau(T_ref_cur, it->second->ftr->f, z, px_error_angle);
+            double tau = computeTau(T_ref_cur, it->ftr->f, z, px_error_angle);
             double tau_inverse = 0.5 * (1.0/max(0.0000001, z-tau) - 1.0/(z+tau));
 
             // update the estimate
-            updateSeed(1./z, tau_inverse*tau_inverse, it->second);
+            updateSeed(1./z, tau_inverse*tau_inverse, &(*it));
 
-            if(sqrt(it->second->sigma2) < Config::edgeInverseDepthVarAccept()*it->second->z_range && it->second->converged == false)
+            if(sqrt(it->sigma2) < Config::edgeInverseDepthVarAccept()*it->z_range && it->converged == false)
             {
                 active_keyframe_->depth_map_quality_ ++;
-                it->second->converged = true;
+                it->converged = true;
             }
 
 #ifdef SVO_TRACE
@@ -435,10 +443,10 @@ namespace svo {
             lock_t lock(frame->depth_map_mut_);
             for(auto it=frame->depth_map_.begin(), ite=frame->depth_map_.end(); it!=ite; ++it)
             {
-                if (it->second->converged)
+                if (it->converged)
                 {
                     good_depth_num++;
-                    const double z=1./it->second->mu;
+                    const double z=1./it->mu;
                     depth_sum += z;
                     depth_min = fmin(z, depth_min);
                 }

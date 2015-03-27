@@ -33,8 +33,8 @@ struct Seed;
 /// Optimize the pose of the frame by minimizing the photometric error of feature patches.
 class SemiDenseAlign : public vk::NLLSSolver<6, SE3>
 {
-    static const int patch_halfsize_ = 2;
-    static const int patch_size_ = 2*patch_halfsize_;
+    static const int patch_halfsize_ = 1;
+    static const int patch_size_ = 3;//2*patch_halfsize_;
     static const int patch_area_ = patch_size_*patch_size_;
 
 public:

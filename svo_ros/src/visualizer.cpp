@@ -249,8 +249,8 @@ namespace svo {
             {
                 for(auto it=frame->depth_map_.begin(), ite=frame->depth_map_.end(); it != ite; ++it)
                 {
-                    if (it->second->converged)
-                        cloud.push_back(T_world_from_vision_*frame->T_f_w_.inverse()*(1.0/it->second->mu * it->second->ftr->f)); 
+                    if (it->converged)
+                        cloud.push_back(T_world_from_vision_*frame->T_f_w_.inverse()*(1.0/it->mu * it->ftr->f)); 
                 }
                 vk::output_helper::publishPointCloud(pub_points_, cloud, "cloud",
                         ros::Time::now(), frame->id_, 0, 0.008, Vector3d(0.0, 0.3, 0.0), publish_points_display_time_);

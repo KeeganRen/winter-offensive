@@ -48,8 +48,7 @@ Frame::~Frame()
   std::for_each(fts_.begin(), fts_.end(), [&](Feature* i){delete i;});
   for (auto it=depth_map_.begin(), ite=depth_map_.end(); it != ite ; it++)
   {
-      delete it->second->ftr;
-      delete it->second;
+      delete it->ftr;
   }
 }
 
@@ -57,8 +56,7 @@ void Frame::clearDepthMap()
 {
   for (auto it=depth_map_.begin(), ite=depth_map_.end(); it != ite ; it++)
   {
-      delete it->second->ftr;
-      delete it->second;
+      delete it->ftr;
   }
   depth_map_.clear();
 }

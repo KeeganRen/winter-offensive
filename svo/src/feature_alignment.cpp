@@ -229,15 +229,13 @@ bool align2D(
       for(int x=0; x<patch_size_; ++x, ++it, ++it_ref, ++it_ref_dx, ++it_ref_dy)
       {
         float search_pixel = wTL*it[0] + wTR*it[1] + wBL*it[cur_step] + wBR*it[cur_step+1];
-        float res = search_pixel - *it_ref + mean_diff;
+        float res = search_pixel - *it_ref + mean_diff; //YS: I(u+du,v+dv) - T + mean_diff
         Jres[0] -= res*(*it_ref_dx);
         Jres[1] -= res*(*it_ref_dy);
         Jres[2] -= res;
         new_chi2 += res*res;
       }
     }
-
-
 
     if(iter > 0 && new_chi2 > chi2)
     {

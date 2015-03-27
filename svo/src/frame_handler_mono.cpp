@@ -164,7 +164,7 @@ namespace svo {
             boost::unique_lock<boost::mutex> lock(depth_frame->depth_map_mut_);
             SVO_START_TIMER("semi_dense_align");
             SemiDenseAlign dense_align(Config::kltMaxLevel(), Config::kltMinLevel(),
-                    30, SemiDenseAlign::GaussNewton, false, false);
+                    30, SemiDenseAlign::GaussNewton, true, false);
             dense_align_n_tracked = dense_align.run(depth_frame, new_frame_);
             SVO_STOP_TIMER("semi_dense_align");
             if (dense_align_n_tracked > 0)
