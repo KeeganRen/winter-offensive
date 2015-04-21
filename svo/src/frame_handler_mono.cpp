@@ -311,9 +311,29 @@ namespace svo {
             return RESULT_FAILURE;
         }
 
-        SparseImgAlign img_align(Config::kltMaxLevel(), Config::kltMinLevel(),
-                30, SparseImgAlign::GaussNewton, false, false);
-        size_t img_align_n_tracked = img_align.run(ref_keyframe, new_frame_);
+        size_t img_align_n_tracked = 0;
+
+#ifdef SVO_USE_EDGE
+        if (ref_keyframe == depth_map_manager_->getActiveKeyframe())
+        {
+            depth_map_manager_->pauseUpdate();
+        }
+
+        boost::unique_lock<boost::mutex> lock(ref_keyframe->depth_map_mut_);
+        SemiDenseAlign dense_align(Config::kltMaxLevel(), Config::kltMinLevel(),
+                30, SemiDenseAlign::GaussNewton, true, false);
+        int dense_align_n_tracked = dense_align.run(ref_keyframe, new_frame_);
+        depth_map_manager_->resumeUpdate();
+
+        if (dense_align_n_tracked < 300)
+        {
+#endif
+            SparseImgAlign img_align(Config::kltMaxLevel(), Config::kltMinLevel(),
+                    30, SparseImgAlign::GaussNewton, false, false);
+            img_align_n_tracked = img_align.run(ref_keyframe, new_frame_);
+#ifdef SVO_USE_EDGE
+        }
+#endif
         if(img_align_n_tracked > 30)
         {
             SE3 T_f_w_last = last_frame_->T_f_w_;
