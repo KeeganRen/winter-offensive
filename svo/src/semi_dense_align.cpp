@@ -189,9 +189,9 @@ namespace svo {
 
         if(linearize_system && display_)
         {
-//            stringstream ss;
-//            ss << "/tmp/image"<<img_cnt<<".png";
-//            cv::imwrite(ss.str(), cur_img);
+            stringstream ss;
+            ss << "/tmp/image"<<img_cnt<<".png";
+            cv::imwrite(ss.str(), cur_img);
 
             resimg_ = cv::Mat(cur_img.size(), CV_32F, cv::Scalar(255));
             weight_img_ = cv::Mat(cur_img.size(), CV_32F, cv::Scalar(0));
@@ -308,7 +308,7 @@ namespace svo {
         if(display_)
         {
             stringstream ss;
-            ss << "/tmp/image" << img_cnt <<'_'<<run_cnt <<".png";
+            ss << "/tmp/patch" << img_cnt <<'_'<<run_cnt <<".png";
             cv::imwrite(ss.str(), resimg_);
 //            stringstream ss;
 //            ofstream log_file;

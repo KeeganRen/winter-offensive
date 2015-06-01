@@ -159,6 +159,10 @@ namespace svo {
 
         if(linearize_system && display_)
         {
+            stringstream ss;
+            ss << "/tmp/image"<<img_cnt<<".png";
+            cv::imwrite(ss.str(), cur_img);
+
             resimg_ = cv::Mat(cur_img.size(), CV_32F, cv::Scalar(255));
 //            cv::cvtColor(cur_img, resimg_, CV_GRAY2RGB);
         }
@@ -278,7 +282,7 @@ namespace svo {
         if(display_)
         {
             stringstream ss;
-            ss << "/tmp/image" << img_cnt <<'_'<<run_cnt <<".png";
+            ss << "/tmp/patch" << img_cnt <<'_'<<run_cnt <<".png";
             cv::imwrite(ss.str(), resimg_);
 //            stringstream ss;
 //            ofstream log_file;

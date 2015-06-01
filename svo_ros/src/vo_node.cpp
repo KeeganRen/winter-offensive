@@ -110,7 +110,7 @@ void VoNode::imgCb(const sensor_msgs::ImageConstPtr& msg)
   if(publish_markers_ && vo_->stage() != FrameHandlerBase::STAGE_PAUSED)
   {
     visualizer_.visualizeMarkers(vo_->lastFrame(), vo_->coreKeyframes(), vo_->map());
-    visualizer_.visualizeDenseCloud(vo_->activeFrame());
+    visualizer_.visualizeDenseCloud(vo_->activeFrame(), true);
   }
 
   if(publish_dense_input_)

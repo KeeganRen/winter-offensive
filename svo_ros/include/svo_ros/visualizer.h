@@ -79,7 +79,7 @@ public:
       const Map& map);
 
     void visualizeDenseCloud(
-        FramePtr frame);
+        FramePtr frame, bool draw_uncertainty);
 
   void publishMapRegion(set<FramePtr> frames);
 

@@ -153,47 +153,51 @@ namespace svo {
     {
         // Set initial pose TODO use prior
         new_frame_->T_f_w_ = last_frame_->T_f_w_;
-#ifdef SVO_USE_EDGE
-        size_t dense_align_n_tracked = 0; 
-        // align with neighbour keyframe
-        depth_map_manager_->pauseUpdate();
-        FramePtr depth_frame = depth_map_manager_->getActiveKeyframe();
-        if (depth_frame)
-        {
-            //      boost::unique_lock<boost::mutex> lock(ovlp_kf_it->first->depth_map_mut_, boost::defer_lock);
-            boost::unique_lock<boost::mutex> lock(depth_frame->depth_map_mut_);
-            SVO_START_TIMER("semi_dense_align");
-            SemiDenseAlign dense_align(Config::kltMaxLevel(), Config::kltMinLevel(),
-                    30, SemiDenseAlign::GaussNewton, true, false);
-            dense_align_n_tracked = dense_align.run(depth_frame, new_frame_);
-            SVO_STOP_TIMER("semi_dense_align");
-            if (dense_align_n_tracked > 0)
-                SVO_INFO_STREAM("dense aligned: "<<dense_align_n_tracked);
-            SVO_LOG(dense_align_n_tracked);
-        }
-        depth_map_manager_->resumeUpdate();
-#endif
-#ifdef SVO_USE_EDGE
-        if (dense_align_n_tracked < 300)
-        {
-            if (dense_align_n_tracked == 0)
-                new_frame_->align_method_ = 0;
-            else
-                new_frame_->align_method_ = 1;
-#endif
+//#ifdef SVO_USE_EDGE
+//        static double scene_depth_esti = 1.0;
+//        size_t dense_align_n_tracked = 0; 
+//        // align with neighbour keyframe
+//        depth_map_manager_->pauseUpdate();
+//        FramePtr depth_frame = depth_map_manager_->getActiveKeyframe();
+//        if (depth_frame)
+//        {
+//            //      boost::unique_lock<boost::mutex> lock(ovlp_kf_it->first->depth_map_mut_, boost::defer_lock);
+//                double baseline_w = (depth_frame->T_f_w_.translation() - new_frame_->T_f_w_.translation()).norm();
+//                if (baseline_w / scene_depth_esti <= 0.8*Config::minBaselineToDepthRatio()) {
+//                        boost::unique_lock<boost::mutex> lock(depth_frame->depth_map_mut_);
+//                        SVO_START_TIMER("semi_dense_align");
+//                        SemiDenseAlign dense_align(Config::kltMaxLevel(), Config::kltMinLevel(),
+//                            30, SemiDenseAlign::GaussNewton, false, false);
+//                        dense_align_n_tracked = dense_align.run(depth_frame, new_frame_);
+//                        SVO_STOP_TIMER("semi_dense_align");
+//                        if (dense_align_n_tracked > 0)
+//                                SVO_INFO_STREAM("dense aligned: "<<dense_align_n_tracked);
+//                        SVO_LOG(dense_align_n_tracked);
+//                }
+//        }
+//        depth_map_manager_->resumeUpdate();
+//#endif
+//#ifdef SVO_USE_EDGE
+//        if (dense_align_n_tracked < 300)
+//        {
+//            if (dense_align_n_tracked == 0)
+//                new_frame_->align_method_ = 0;
+//            else
+//                new_frame_->align_method_ = 1;
+//#endif
             // sparse image align
             SVO_START_TIMER("sparse_img_align");
             SparseImgAlign img_align(Config::kltMaxLevel(), Config::kltMinLevel(),
-                    30, SparseImgAlign::GaussNewton, false, false);
+                    30, SparseImgAlign::GaussNewton, true, false);
             size_t img_align_n_tracked = img_align.run(last_frame_, new_frame_);
             SVO_STOP_TIMER("sparse_img_align");
             SVO_LOG(img_align_n_tracked);
             SVO_DEBUG_STREAM("Img Align:\t Tracked = " << img_align_n_tracked);
-#ifdef SVO_USE_EDGE
-        }
-        else
-            new_frame_->align_method_ = 2;
-#endif
+//#ifdef SVO_USE_EDGE
+//        }
+//        else
+//            new_frame_->align_method_ = 2;
+//#endif
         // map reprojection & feature alignment
         SVO_START_TIMER("reproject");
         reprojector_.reprojectMap(new_frame_, overlap_kfs_);
@@ -239,6 +243,7 @@ namespace svo {
         }
         double depth_mean, depth_min;
         frame_utils::getSceneDepth(*new_frame_, depth_mean, depth_min);
+//        scene_depth_esti = depth_mean;
 #ifdef SVO_USE_EDGE
         depth_map_manager_->addFrame(new_frame_, depth_mean, depth_min);
 #endif
@@ -312,28 +317,28 @@ namespace svo {
         }
 
         size_t img_align_n_tracked = 0;
-
-#ifdef SVO_USE_EDGE
-        if (ref_keyframe == depth_map_manager_->getActiveKeyframe())
-        {
-            depth_map_manager_->pauseUpdate();
-        }
-
-        boost::unique_lock<boost::mutex> lock(ref_keyframe->depth_map_mut_);
-        SemiDenseAlign dense_align(Config::kltMaxLevel(), Config::kltMinLevel(),
-                30, SemiDenseAlign::GaussNewton, true, false);
-        int dense_align_n_tracked = dense_align.run(ref_keyframe, new_frame_);
-        depth_map_manager_->resumeUpdate();
-
-        if (dense_align_n_tracked < 300)
-        {
-#endif
+//
+//#ifdef SVO_USE_EDGE
+//        if (ref_keyframe == depth_map_manager_->getActiveKeyframe())
+//        {
+//            depth_map_manager_->pauseUpdate();
+//        }
+//
+//        boost::unique_lock<boost::mutex> lock(ref_keyframe->depth_map_mut_);
+//        SemiDenseAlign dense_align(Config::kltMaxLevel(), Config::kltMinLevel(),
+//                30, SemiDenseAlign::GaussNewton, true, false);
+//        int dense_align_n_tracked = dense_align.run(ref_keyframe, new_frame_);
+//        depth_map_manager_->resumeUpdate();
+//
+//        if (dense_align_n_tracked < 300)
+//        {
+//#endif
             SparseImgAlign img_align(Config::kltMaxLevel(), Config::kltMinLevel(),
                     30, SparseImgAlign::GaussNewton, false, false);
             img_align_n_tracked = img_align.run(ref_keyframe, new_frame_);
-#ifdef SVO_USE_EDGE
-        }
-#endif
+//#ifdef SVO_USE_EDGE
+//        }
+//#endif
         if(img_align_n_tracked > 30)
         {
             SE3 T_f_w_last = last_frame_->T_f_w_;
