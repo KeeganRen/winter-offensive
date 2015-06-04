@@ -43,7 +43,7 @@ namespace svo {
         eps_ = 0.000001;
     }
 
-    size_t SparseImgAlign::run(FramePtr ref_frame, FramePtr cur_frame)
+    size_t SparseImgAlign::run(FramePtr ref_frame, FramePtr cur_frame, Vector6d& update)
     {
         reset();
 
@@ -71,6 +71,7 @@ namespace svo {
                 printf("\nPYRAMID LEVEL %i\n---------------\n", level_);
             optimize(T_cur_from_ref);
         }
+        update = SE3::log(T_cur_from_ref);
         cur_frame_->T_f_w_ = T_cur_from_ref * ref_frame_->T_f_w_;
 
         return n_meas_/patch_area_;

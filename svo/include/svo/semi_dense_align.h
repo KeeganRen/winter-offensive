@@ -68,7 +68,8 @@ public:
 
   size_t run(
       FramePtr ref_frame,
-      FramePtr cur_frame);
+      FramePtr cur_frame,
+      Vector6d& update);
 
   /// Return fisher information matrix, i.e. the Hessian of the log-likelihood
   /// at the converged state.

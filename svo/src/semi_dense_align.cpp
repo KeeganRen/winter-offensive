@@ -45,7 +45,7 @@ namespace svo {
         weight_function_.reset(new vk::robust_cost::HuberWeightFunction(0.02));
     }
 
-    size_t SemiDenseAlign::run(FramePtr ref_frame, FramePtr cur_frame)
+    size_t SemiDenseAlign::run(FramePtr ref_frame, FramePtr cur_frame, Vector6d& update)
     {
         reset();
 
@@ -54,7 +54,6 @@ namespace svo {
 
         if(ref_frame->depth_map_quality_ < 150)
         {
-//            SVO_WARN_STREAM("SemiDenseAlign: depth map untrackable!" << ref_frame->depth_map_quality_);
             return 0;
         }
 
@@ -65,10 +64,6 @@ namespace svo {
 
         SE3 T_cur_from_ref(cur_frame_->T_f_w_ * ref_frame_->T_f_w_.inverse());    // YS: identity matrix
 
-//        static int file_num=0;
-//        stringstream ss;
-//        ss << "/tmp/res" << file_num++ <<".txt";
-//        log_file.open(ss.str());
         for(level_=max_level_; level_>=min_level_; --level_)
         {
             mu_ = 0.1;
@@ -78,7 +73,7 @@ namespace svo {
                 printf("\nPYRAMID LEVEL %i\n---------------\n", level_);
             optimize(T_cur_from_ref);
         }
-//        log_file.close();
+        update = SE3::log(T_cur_from_ref);
         cur_frame_->T_f_w_ = T_cur_from_ref * ref_frame_->T_f_w_;
 
         return n_meas_/patch_area_;
