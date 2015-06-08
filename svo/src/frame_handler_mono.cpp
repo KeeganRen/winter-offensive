@@ -188,7 +188,9 @@ namespace svo {
         SVO_DEBUG_STREAM("Img Align:\t Tracked = " << img_align_n_tracked);
 
 #ifdef SVO_USE_EDGE
-        new_frame_->T_f_w_ = SE3::exp(corner_ksi) * last_frame_->T_f_w_;
+        double edge_weight = min(dense_align_n_tracked/500.0, 1.0) * Config::edgeWeightInMotionEsti();
+        new_frame_->T_f_w_ = SE3::exp((1-edge_weight) * corner_ksi + edge_weight * edge_ksi) * last_frame_->T_f_w_;
+        new_frame_->align_method_ = edge_weight / Config::edgeWeightInMotionEsti() * 255;
 #endif
             
         // map reprojection & feature alignment

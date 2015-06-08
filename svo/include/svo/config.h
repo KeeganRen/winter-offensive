@@ -127,6 +127,8 @@ public:
 
   static double& edgeInverseDepthVarAccept() { return getInstance().edge_inverse_depth_var_accept;}
 
+  static double& edgeWeightInMotionEsti() { return getInstance().edge_weight_in_motion_esti;}
+
 private:
   Config();
   Config(Config const&);
@@ -164,6 +166,7 @@ private:
   double min_baseline_to_depth_ratio;
   int min_depth_map_quality;
   double edge_inverse_depth_var_accept;
+  double edge_weight_in_motion_esti;
 };
 
 } // namespace svo

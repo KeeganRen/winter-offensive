@@ -54,7 +54,8 @@ Config::Config() :
     quality_max_drop_fts(vk::getParam<int>("svo/quality_max_drop_fts", 100)),
     min_baseline_to_depth_ratio(vk::getParam<double>("svo/min_baseline_to_depth_ratio", 0.08)),
     min_depth_map_quality(vk::getParam<int>("svo/min_depth_map_quality", 300)),
-    edge_inverse_depth_var_accept(vk::getParam<double>("svo/edge_inverse_depth_var_accept", 0.005))
+    edge_inverse_depth_var_accept(vk::getParam<double>("svo/edge_inverse_depth_var_accept", 0.005)),
+        edge_weight_in_motion_esti(vk::getParam<double>("svo/edge_weight_in_motion_esti", 0.2))
 #else
     trace_name("svo"),
     trace_dir("/tmp"),
@@ -87,7 +88,8 @@ Config::Config() :
     quality_max_drop_fts(40),
     min_baseline_to_depth_ratio(0.15),
     min_depth_map_quality(300),
-    edge_inverse_depth_var_accept(0.005)
+    edge_inverse_depth_var_accept(0.005),
+    edge_weight_in_motion_esti(0.2)
 #endif
 {}
 

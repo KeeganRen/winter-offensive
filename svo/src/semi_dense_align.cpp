@@ -73,7 +73,7 @@ namespace svo {
                 printf("\nPYRAMID LEVEL %i\n---------------\n", level_);
             optimize(T_cur_from_ref);
         }
-        update = SE3::log(T_cur_from_ref);
+        update = SE3::log(T_cur_from_ref * ref_frame_->T_f_w_ * cur_frame_->T_f_w_.inverse());
         cur_frame_->T_f_w_ = T_cur_from_ref * ref_frame_->T_f_w_;
 
         return n_meas_/patch_area_;
